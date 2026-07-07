@@ -63,7 +63,7 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 
 ## Architecture
 
-![Provenance System Architecture](docs/architecture.png)
+![Provenance System Architecture](docs/Architecture.png)
 
 The system has three strictly separated layers:
 
@@ -77,7 +77,7 @@ The system has three strictly separated layers:
 
 ## Data Model
 
-![Provenance ERD v4](docs\Erd.png)
+![Provenance ERD v4](docs/Erd.png)
 
 Four domain bands: **Knowledge Base** · **Deterministic Engine** · **Users & Filings** · **Operations (Roadmap)**
 
@@ -87,7 +87,7 @@ tax_profiles → filings → code_versions → filing_citations → tax_rules �
 ```
 Every output number traces through this chain to the source paragraph.
 
-→ [Full modular ERD + relationship catalogue](docs\provenance_erd_v3_professional_pack.pdf)
+→ [Full modular ERD + relationship catalogue](docs/provenance_erd_v3_professional_pack.pdf)
 
 ---
 
