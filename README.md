@@ -43,7 +43,7 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 |---|---|
 | UK salary (£) | FEIE vs FTC comparison — exact figures |
 | UK tax paid (£) | Recommended route + estimated US tax impact |
-| Filing status | 13 US & UK filing flags — see [Forms Coverage](#forms-coverage) |
+| Filing status | 14 US & UK filing flags — see [Forms Coverage](#forms-coverage) |
 | Days abroad | Deterministic line-by-line form previews |
 | Dependents · foreign accounts | Cited IRS / HMRC / US–UK treaty paragraphs |
 | ISA / PFIC holdings · pension | Full calculation trace + plain-English AI explanation |
@@ -69,6 +69,7 @@ Every form gets a **flag** (required or not, with a cited reason). Most also get
 
 | Form | What it is | Flag | Line preview |
 |---|---|:---:|:---:|
+| **Form 1040** | The core return — wages (line 1h, no W-2), AGI, tax, credits, total tax | ✅ always | ✅ full⁰ |
 | **Form 2555** | FEIE election — income chain, cap, exclusion → Schedule 1 | ✅ | ✅ full |
 | **Form 1116** | Foreign Tax Credit — §904 limitation chain → Schedule 3 | ✅ | ✅ full |
 | **Schedule 1** (1040) | FEIE exclusion entered as negative on line 8d | ✅ | ✅ full |
@@ -88,6 +89,7 @@ Every form gets a **flag** (required or not, with a cited reason). Most also get
 | **SA106** | Foreign pages — non-UK income + Foreign Tax Credit Relief | ✅ | ◐ partial⁵ |
 | **SA109** | Residence, domicile & FIG regime pages | ✅ | ◐ partial⁶ |
 
+⁰ Line 17 (AMT/excess-APTC) assumed zero rather than evaluated — stated on the line itself; line 16 under FEIE uses the stacking-rule worksheet.
 ¹ NIIT/AMT not evaluated; Additional Medicare Tax deterministically $0 via the US–UK Totalization Agreement.
 ² Brand-new schedule — the flag explains from which tax year it first applies; its line preview activates once multi-year support lands.
 ³ Value-range checkbox and §1291-fund default computed; Part V is fully deterministic ($0) when no distribution occurred, honest-blank when one did (needs distribution history).
@@ -147,7 +149,7 @@ Every output number traces through this chain to the source paragraph.
 - PAYE UK salary earner only
 - Single tax year per analysis — form previews track the newest official form revisions
 - FTC vs FEIE election comparison
-- 13 US & UK filing flags + deterministic form previews ([Forms Coverage](#forms-coverage))
+- 14 US & UK filing flags + deterministic form previews ([Forms Coverage](#forms-coverage))
 - PFIC/ISA detection (Form 8621), treaty disclosure (8833), FATCA (8938), UK Self Assessment (SA100/106/109)
 - Plain-English LLM explanation with cited paragraphs
 - Full calculation trace visible in UI

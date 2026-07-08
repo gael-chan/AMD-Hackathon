@@ -4,6 +4,7 @@ Each builder takes pre-computed engine values and returns a FormPreview —
 the exact line entries for an official IRS/HMRC form, with citation keys.
 Same architectural law as the tax engine: pure Python, Decimal in, no LLM.
 """
+from forms.form1040 import build_form_1040
 from forms.form1116 import build_form_1116
 from forms.form2555 import build_form_2555
 from forms.form8621 import build_form_8621
@@ -18,6 +19,7 @@ from forms.schedule2 import build_schedule_2
 from forms.schedule3 import build_schedule_3
 
 __all__ = [
+    "build_form_1040",
     "build_form_1116",
     "build_form_2555",
     "build_form_8621",

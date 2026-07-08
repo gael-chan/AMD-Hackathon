@@ -76,6 +76,17 @@ SNIPPETS: dict[str, dict] = {
         ),
         "url": "https://www.irs.gov/forms-pubs/about-form-8938",
     },
+    "form_1040_core": {
+        "source": "IRS — Form 1040, U.S. Individual Income Tax Return (2024)",
+        "reference": "26 USC §1, §6012(a) — filing requirement; Form 1040 lines 1h, 8, 16, 19-24",
+        "text": (
+            "A US citizen must file Form 1040 reporting worldwide income regardless of where they "
+            "live. Foreign wages with no Form W-2 are reported on line 1h (other earned income). "
+            "Every schedule and election form attaches to the 1040: Schedule 1 flows to line 8, "
+            "the tax computation to line 16, credits to lines 19-21, and total tax lands on line 24."
+        ),
+        "url": "https://www.irs.gov/forms-pubs/about-form-1040",
+    },
     "form_8621_pfic": {
         "source": "IRS — Form 8621 instructions (2024)",
         "reference": "26 USC §1291–1298; §1298(f) reporting; de minimis exception ($25,000 / $50,000 MFJ)",
