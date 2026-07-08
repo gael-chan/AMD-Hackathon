@@ -143,6 +143,108 @@ function RouteCard({
   );
 }
 
+function FormPreviewTable({ fp }: { fp: FormPreview }) {
+  return (
+    <div className="mt-2 rounded-lg border border-slate-700 bg-slate-900 p-4">
+      <div className="flex items-baseline justify-between">
+        <p className="text-xs text-slate-500">Deterministic line entries — not a filed return.</p>
+        <span className="font-mono text-xs text-slate-500">TY{fp.tax_year}</span>
+      </div>
+      <table className="mt-3 w-full text-sm">
+        <tbody>
+          {fp.lines.map((ln) => (
+            <tr key={ln.line} className="border-t border-slate-800">
+              <td className="w-12 py-2 pr-3 align-top font-mono text-slate-400">{ln.line}</td>
+              <td className="py-2 pr-3 align-top text-slate-300">
+                {ln.label}
+                {ln.note && <span className="mt-0.5 block text-xs text-slate-500">{ln.note}</span>}
+              </td>
+              {ln.text_value !== null ? (
+                <td className="max-w-[16rem] py-2 text-right align-top text-xs italic text-sky-200/90">
+                  {ln.text_value}
+                </td>
+              ) : (
+                <td
+                  className={`py-2 text-right align-top font-mono ${
+                    ln.value === null ? 'text-slate-500' : 'text-emerald-400'
+                  }`}
+                >
+                  {ln.value === null
+                    ? '—'
+                    : ln.value < 0
+                      ? `(${Math.abs(ln.value).toLocaleString('en-US', { minimumFractionDigits: 2 })})`
+                      : ln.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {fp.flows_to && <p className="mt-2 text-xs font-medium text-sky-400">→ flows to {fp.flows_to}</p>}
+      {fp.note && <p className="mt-1 text-xs text-slate-500">{fp.note}</p>}
+    </div>
+  );
+}
+
+function RequiredFilings({ flags, previews }: { flags: FilingFlag[]; previews: FormPreview[] }) {
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const required = flags.filter((f) => f.required);
+  const groups = (['US', 'UK'] as const)
+    .map((juris) => ({ juris, items: required.filter((f) => f.jurisdiction === juris) }))
+    .filter((g) => g.items.length > 0);
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
+      <h3 className="text-lg font-semibold">Required Filings</h3>
+      <p className="mt-1 text-xs text-slate-500">Click a form to see its computed line preview.</p>
+      {groups.map(({ juris, items }) => (
+        <div key={juris} className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {juris === 'US' ? '🇺🇸 US — IRS / FinCEN' : '🇬🇧 UK — HMRC Self Assessment'}
+          </p>
+          <ul className="mt-2 space-y-2">
+            {items.map((f) => {
+              const fp = previews.find((p) => p.form === f.form);
+              const isOpen = !!open[f.form];
+              const row = (
+                <span className="flex w-full items-start gap-3">
+                  <span className="mt-0.5 shrink-0 rounded bg-amber-500 px-2 py-0.5 text-xs font-bold text-amber-950">
+                    FILE
+                  </span>
+                  <span>
+                    <span className="font-medium">{f.form}</span>
+                    {fp && (
+                      <span className="ml-2 text-xs font-medium text-sky-400">
+                        {isOpen ? '▾ Hide preview' : '▸ Preview'}
+                      </span>
+                    )}
+                    <span className="block text-slate-400">{f.reason}</span>
+                  </span>
+                </span>
+              );
+              return (
+                <li key={f.form} className="text-sm">
+                  {fp ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpen({ ...open, [f.form]: !isOpen })}
+                      className="w-full rounded-md text-left hover:bg-slate-800/50"
+                    >
+                      {row}
+                    </button>
+                  ) : (
+                    row
+                  )}
+                  {isOpen && fp && <FormPreviewTable fp={fp} />}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [form, setForm] = useState({
     uk_salary: '85000',
@@ -320,86 +422,7 @@ export default function Home() {
             <RouteCard result={result.ftc} recommended={result.recommended_route === 'FTC'} citations={result.citations} />
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
-            <h3 className="text-lg font-semibold">Filing flags</h3>
-            {(['US', 'UK'] as const).map((juris) => (
-              <div key={juris} className="mt-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {juris === 'US' ? '🇺🇸 US — IRS / FinCEN' : '🇬🇧 UK — HMRC Self Assessment'}
-                </p>
-                <ul className="mt-2 space-y-2">
-                  {result.filing_flags
-                    .filter((f) => f.jurisdiction === juris)
-                    .map((f) => (
-                      <li key={f.form} className="flex items-start gap-3 text-sm">
-                        <span
-                          className={`mt-0.5 shrink-0 rounded px-2 py-0.5 text-xs font-bold ${
-                            f.required ? 'bg-amber-500 text-amber-950' : 'bg-slate-700 text-slate-300'
-                          }`}
-                        >
-                          {f.required ? 'FILE' : 'N/A'}
-                        </span>
-                        <span>
-                          <span className="font-medium">{f.form}</span>
-                          <span className="text-slate-400"> — {f.reason}</span>
-                        </span>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          {result.form_previews.length > 0 && (
-            <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
-              <h3 className="text-lg font-semibold">Form previews</h3>
-              <p className="mt-1 text-xs text-slate-500">
-                Deterministic line entries computed by the engine — not a filed return.
-              </p>
-              {result.form_previews.map((fp) => (
-                <div key={fp.form} className="mt-4 rounded-lg border border-slate-700 bg-slate-900 p-4">
-                  <div className="flex items-baseline justify-between">
-                    <p className="font-semibold">📄 {fp.form}</p>
-                    <span className="font-mono text-xs text-slate-500">TY{fp.tax_year}</span>
-                  </div>
-                  <table className="mt-3 w-full text-sm">
-                    <tbody>
-                      {fp.lines.map((ln) => (
-                        <tr key={ln.line} className="border-t border-slate-800">
-                          <td className="w-12 py-2 pr-3 align-top font-mono text-slate-400">{ln.line}</td>
-                          <td className="py-2 pr-3 align-top text-slate-300">
-                            {ln.label}
-                            {ln.note && <span className="mt-0.5 block text-xs text-slate-500">{ln.note}</span>}
-                          </td>
-                          {ln.text_value !== null ? (
-                            <td className="max-w-[16rem] py-2 text-right align-top text-xs italic text-sky-200/90">
-                              {ln.text_value}
-                            </td>
-                          ) : (
-                            <td
-                              className={`py-2 text-right align-top font-mono ${
-                                ln.value === null ? 'text-slate-500' : 'text-emerald-400'
-                              }`}
-                            >
-                              {ln.value === null
-                                ? '—'
-                                : ln.value < 0
-                                  ? `(${Math.abs(ln.value).toLocaleString('en-US', { minimumFractionDigits: 2 })})`
-                                  : ln.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {fp.flows_to && (
-                    <p className="mt-2 text-xs font-medium text-sky-400">→ flows to {fp.flows_to}</p>
-                  )}
-                  {fp.note && <p className="mt-1 text-xs text-slate-500">{fp.note}</p>}
-                </div>
-              ))}
-            </div>
-          )}
+          <RequiredFilings flags={result.filing_flags} previews={result.form_previews} />
 
           <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
             <div className="flex items-center justify-between">
@@ -435,7 +458,7 @@ export default function Home() {
       )}
 
       <footer className="mt-10 border-t border-slate-800 pt-4 text-xs text-slate-500">
-        Demo scope: PAYE-only UK salary, tax year 2024, fixed GBP/USD 1.27. Not tax advice.
+        Demo scope: PAYE-only UK salary, single tax year, fixed GBP/USD 1.27. Not tax advice.
       </footer>
     </main>
   );
