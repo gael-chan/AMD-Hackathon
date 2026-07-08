@@ -202,6 +202,11 @@ uvicorn main:app --reload
 cd frontend && npm install && npm run dev
 ```
 
+**Run the engine test suite** (109 tests: hand-computed bracket goldens, stacking-rule and §904 scenarios, threshold boundary pins, and cross-form consistency invariants swept over a profile grid):
+```bash
+cd backend && pytest tests -q
+```
+
 **Test the API directly:**
 ```bash
 curl -X POST http://localhost:8000/analyze \
@@ -237,6 +242,7 @@ provenance/
 │   │   └── sa100.py, sa106.py, sa109.py   # UK Self Assessment
 │   ├── llm/
 │   │   └── client.py      # AMD MI300X + Fireworks fallback
+│   ├── tests/             # pytest: golden math, boundaries, cross-form invariants
 │   └── requirements.txt
 ├── frontend/              # Next.js — form + result card + trace viewer
 ├── docs/
