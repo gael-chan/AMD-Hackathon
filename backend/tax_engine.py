@@ -14,6 +14,7 @@ from models import (
     RouteResult,
     TaxProfile,
     TraceStep,
+    UkResidenceStatus,
 )
 from snippets import get_snippets
 
@@ -79,6 +80,15 @@ FORM_8938_THRESHOLD_ABROAD = {
     FilingStatus.married_filing_separately: Decimal("200000"),
     FilingStatus.head_of_household: Decimal("200000"),
     FilingStatus.married_filing_jointly: Decimal("400000"),
+}
+
+# §1298(f) de minimis exception — no Form 8621 needed below this aggregate PFIC
+# value, provided there was also no distribution/disposal during the year.
+PFIC_DE_MINIMIS = {
+    FilingStatus.single: Decimal("25000"),
+    FilingStatus.married_filing_separately: Decimal("25000"),
+    FilingStatus.head_of_household: Decimal("25000"),
+    FilingStatus.married_filing_jointly: Decimal("50000"),
 }
 
 CENT = Decimal("0.01")
@@ -248,6 +258,7 @@ def compute_ftc(income_usd: Decimal, uk_tax_usd: Decimal, profile: TaxProfile) -
 
 
 def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: bool) -> list[FilingFlag]:
+    # ---- US: route election forms ----
     flags = [
         FilingFlag(
             form="Form 2555",
@@ -267,6 +278,74 @@ def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: b
         ),
     ]
 
+    # ---- US: 1040 schedules that follow mechanically from the election ----
+    flags.append(FilingFlag(
+        form="Schedule 1 (Form 1040)",
+        required=(recommended == "FEIE"),
+        reason="The Form 2555 exclusion is reported as a negative amount on Schedule 1, line 8d."
+        if recommended == "FEIE" else "Not triggered — no FEIE exclusion or other additional income/adjustments in scope.",
+        citation_key="schedule_1_2555",
+    ))
+    flags.append(FilingFlag(
+        form="Schedule 3 (Form 1040)",
+        required=(recommended == "FTC"),
+        reason="The Form 1116 foreign tax credit is claimed on Schedule 3, Part I, line 1."
+        if recommended == "FTC" else "Not triggered — no foreign tax credit or other Schedule 3 credits in scope.",
+        citation_key="schedule_3_ftc",
+    ))
+    flags.append(FilingFlag(
+        form="Schedule 2 (Form 1040)",
+        required=profile.pfic_distribution_or_disposal,
+        reason="PFIC §1291 excess-distribution tax from a distribution/disposal is reported as an additional tax on Schedule 2."
+        if profile.pfic_distribution_or_disposal else
+        "Not triggered — UK PAYE wages are exempt from US Social Security/Medicare under the US–UK Totalization "
+        "Agreement; NIIT and AMT are not evaluated by this tool.",
+        citation_key="totalization_agreement",
+    ))
+    flags.append(FilingFlag(
+        form="Schedule 1-A (Form 1040)",
+        required=False,
+        reason="Not applicable — Schedule 1-A (tips/overtime/car-loan/senior deductions) first applies to tax "
+        "year 2025; this analysis uses tax year 2024.",
+        citation_key="schedule_1a_2025",
+    ))
+
+    # ---- US: PFIC (the ISA trap) ----
+    pfic_value = Decimal(str(profile.pfic_holdings_value)) if profile.pfic_holdings_value is not None else None
+    de_minimis = PFIC_DE_MINIMIS[profile.filing_status]
+    pfic_over_threshold = pfic_value is not None and pfic_value > de_minimis
+    pfic_required = pfic_over_threshold or profile.pfic_distribution_or_disposal
+    if pfic_required:
+        pfic_reason = (
+            "PFIC distribution or disposal during the year — the de minimis exception does not apply."
+            if profile.pfic_distribution_or_disposal else
+            f"Aggregate PFIC holdings (e.g. funds inside a Stocks & Shares ISA) exceed the ${de_minimis:,.0f} "
+            f"de minimis threshold. One Form 8621 is required per PFIC."
+        )
+    elif pfic_value is not None:
+        pfic_reason = (f"Holdings reported but at or below the ${de_minimis:,.0f} de minimis threshold with no "
+                       "distribution/disposal — filing excused under §1298(f). Note: UK funds/ETFs in an ISA are "
+                       "still PFICs; the exception is value-based, not permanent.")
+    else:
+        pfic_reason = ("Not triggered — no PFIC holdings reported. Caution: UK-domiciled funds, unit trusts, and "
+                       "ETFs held in a Stocks & Shares ISA are PFICs even though the ISA is tax-free in the UK.")
+    flags.append(FilingFlag(
+        form="Form 8621",
+        required=pfic_required,
+        reason=pfic_reason,
+        citation_key="form_8621_pfic",
+    ))
+
+    # ---- US: treaty disclosure ----
+    flags.append(FilingFlag(
+        form="Form 8833",
+        required=profile.uk_workplace_pension,
+        reason="Disclosing reliance on US–UK Treaty Article 18 to defer US tax on UK workplace pension growth."
+        if profile.uk_workplace_pension else "Not triggered — no treaty-based return position reported.",
+        citation_key="form_8833_treaty",
+    ))
+
+    # ---- US: information reporting ----
     balance = Decimal(str(profile.foreign_account_balance)) if profile.foreign_account_balance is not None else None
     over_10k = (balance is not None and balance > FBAR_THRESHOLD) or bool(profile.foreign_account_balance_over_10k)
     flags.append(FilingFlag(
@@ -286,6 +365,60 @@ def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: b
         if over_8938 else f"Not triggered — below the ${threshold_8938:,.0f} living-abroad threshold (or balance not reported).",
         citation_key="form_8938",
     ))
+
+    # ---- UK: Self Assessment ----
+    foreign_income = Decimal(str(profile.foreign_source_income_or_gains_gbp)) \
+        if profile.foreign_source_income_or_gains_gbp is not None else None
+    sa106_required = foreign_income is not None and foreign_income > 0
+    flags.append(FilingFlag(
+        form="SA106 (Foreign)",
+        jurisdiction="UK",
+        required=sa106_required,
+        reason="Non-UK-source income/gains reported — required to declare them and claim Foreign Tax Credit "
+        "Relief for any US tax paid (e.g. US withholding on RSUs)."
+        if sa106_required else "Not triggered — no non-UK-source income or gains reported.",
+        citation_key="sa106_foreign",
+    ))
+
+    sa109_required = (
+        profile.uk_tax_residence != UkResidenceStatus.full_year_resident
+        or profile.uk_non_domiciled
+        or profile.claims_uk_remittance_basis
+    )
+    if sa109_required:
+        sa109_triggers = []
+        if profile.uk_tax_residence == UkResidenceStatus.split_year:
+            sa109_triggers.append("split-year treatment")
+        elif profile.uk_tax_residence == UkResidenceStatus.non_resident:
+            sa109_triggers.append("non-resident status")
+        if profile.uk_non_domiciled:
+            sa109_triggers.append("non-UK domicile")
+        if profile.claims_uk_remittance_basis:
+            sa109_triggers.append("remittance basis election")
+        sa109_reason = "Required to declare: " + ", ".join(sa109_triggers) + "."
+    else:
+        sa109_reason = "Not triggered — full-year UK resident, UK domiciled, no remittance basis claim."
+    flags.append(FilingFlag(
+        form="SA109 (Residence)",
+        jurisdiction="UK",
+        required=sa109_required,
+        reason=sa109_reason,
+        citation_key="sa109_residence",
+    ))
+
+    sa100_required = sa106_required or sa109_required
+    flags.append(FilingFlag(
+        form="SA100 (Self Assessment)",
+        jurisdiction="UK",
+        required=sa100_required,
+        reason="The main Self Assessment return is required because supplementary pages "
+        f"({', '.join(f for f, r in [('SA106', sa106_required), ('SA109', sa109_required)] if r)}) must be attached to it."
+        if sa100_required else
+        "Not triggered — PAYE collects UK tax at source and no supplementary pages are needed. HMRC may still "
+        "issue a notice to file.",
+        citation_key="sa100_main",
+    ))
+
     return flags
 
 
