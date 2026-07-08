@@ -16,6 +16,20 @@ from models import (
     TraceStep,
     UkResidenceStatus,
 )
+from forms import (
+    build_form_1116,
+    build_form_2555,
+    build_form_8621,
+    build_form_8833,
+    build_form_8938,
+    build_sa100,
+    build_sa106,
+    build_sa109,
+    build_schedule_1,
+    build_schedule_1a,
+    build_schedule_2,
+    build_schedule_3,
+)
 from snippets import get_snippets
 
 # ---- Tax year 2024 constants (hardcoded by design — see README "Design Decisions") ----
@@ -113,9 +127,10 @@ def tax_from_brackets(taxable: Decimal, status: FilingStatus) -> Decimal:
     return _round(tax)
 
 
-def compute_feie(income_usd: Decimal, profile: TaxProfile) -> RouteResult:
+def compute_feie(income_usd: Decimal, profile: TaxProfile) -> tuple[RouteResult, Decimal]:
     """FEIE route: exclude foreign earned income up to the limit, tax the rest
-    under the stacking rule (Foreign Earned Income Tax Worksheet)."""
+    under the stacking rule (Foreign Earned Income Tax Worksheet).
+    Returns the route result and the excluded amount (0 if ineligible)."""
     trace: list[TraceStep] = []
     status = profile.filing_status
 
@@ -133,7 +148,7 @@ def compute_feie(income_usd: Decimal, profile: TaxProfile) -> RouteResult:
             detail=f"Not eligible: only {profile.days_abroad} days abroad; the physical "
                    f"presence test requires at least {PHYSICAL_PRESENCE_MIN_DAYS}.",
             trace=trace,
-        )
+        ), Decimal("0")
 
     excluded = min(income_usd, FEIE_LIMIT_2024)
     trace.append(TraceStep(
@@ -183,11 +198,12 @@ def compute_feie(income_usd: Decimal, profile: TaxProfile) -> RouteResult:
         detail=f"Excludes ${excluded:,.0f} of foreign earned income under §911; "
                f"remaining US tax ${tax:,.2f} (stacking rule applied).",
         trace=trace,
-    )
+    ), excluded
 
 
-def compute_ftc(income_usd: Decimal, uk_tax_usd: Decimal, profile: TaxProfile) -> RouteResult:
-    """FTC route: full US tax computation, then credit UK tax up to the §904 limitation."""
+def compute_ftc(income_usd: Decimal, uk_tax_usd: Decimal, profile: TaxProfile) -> tuple[RouteResult, Decimal]:
+    """FTC route: full US tax computation, then credit UK tax up to the §904 limitation.
+    Returns the route result and the credited amount."""
     trace: list[TraceStep] = []
     status = profile.filing_status
 
@@ -254,7 +270,37 @@ def compute_ftc(income_usd: Decimal, uk_tax_usd: Decimal, profile: TaxProfile) -
     detail = f"Credits ${credit:,.2f} of UK tax against US liability; residual US tax ${tax:,.2f}."
     if excess_credit > 0:
         detail += f" Excess credit of ${excess_credit:,.2f} carries forward up to 10 years."
-    return RouteResult(route="FTC", eligible=True, us_tax_owed=float(tax), detail=detail, trace=trace)
+    return RouteResult(route="FTC", eligible=True, us_tax_owed=float(tax), detail=detail, trace=trace), _round(credit)
+
+
+def pfic_8621_required(profile: TaxProfile) -> tuple[Decimal | None, bool]:
+    """Aggregate PFIC value and whether Form 8621 must be filed — §1298(f):
+    over the de minimis threshold, or any distribution/disposal in the year."""
+    value = Decimal(str(profile.pfic_holdings_value)) if profile.pfic_holdings_value is not None else None
+    over = value is not None and value > PFIC_DE_MINIMIS[profile.filing_status]
+    return value, over or profile.pfic_distribution_or_disposal
+
+
+def form_8938_required(profile: TaxProfile) -> tuple[Decimal | None, bool]:
+    """Peak aggregate balance and whether Form 8938 must be filed — balance
+    over the living-abroad threshold for the filing status."""
+    balance = Decimal(str(profile.foreign_account_balance)) if profile.foreign_account_balance is not None else None
+    threshold = FORM_8938_THRESHOLD_ABROAD[profile.filing_status]
+    return balance, balance is not None and balance > threshold
+
+
+def uk_sa_required(profile: TaxProfile) -> tuple[bool, bool, bool]:
+    """(sa106, sa109, sa100) — SA106 for non-UK-source income, SA109 for
+    residence/domicile/remittance claims, SA100 whenever either page attaches."""
+    foreign_income = Decimal(str(profile.foreign_source_income_or_gains_gbp)) \
+        if profile.foreign_source_income_or_gains_gbp is not None else None
+    sa106 = foreign_income is not None and foreign_income > 0
+    sa109 = (
+        profile.uk_tax_residence != UkResidenceStatus.full_year_resident
+        or profile.uk_non_domiciled
+        or profile.claims_uk_remittance_basis
+    )
+    return sa106, sa109, sa106 or sa109
 
 
 def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: bool) -> list[FilingFlag]:
@@ -311,10 +357,8 @@ def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: b
     ))
 
     # ---- US: PFIC (the ISA trap) ----
-    pfic_value = Decimal(str(profile.pfic_holdings_value)) if profile.pfic_holdings_value is not None else None
+    pfic_value, pfic_required = pfic_8621_required(profile)
     de_minimis = PFIC_DE_MINIMIS[profile.filing_status]
-    pfic_over_threshold = pfic_value is not None and pfic_value > de_minimis
-    pfic_required = pfic_over_threshold or profile.pfic_distribution_or_disposal
     if pfic_required:
         pfic_reason = (
             "PFIC distribution or disposal during the year — the de minimis exception does not apply."
@@ -357,7 +401,7 @@ def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: b
     ))
 
     threshold_8938 = FORM_8938_THRESHOLD_ABROAD[profile.filing_status]
-    over_8938 = balance is not None and balance > threshold_8938
+    _, over_8938 = form_8938_required(profile)
     flags.append(FilingFlag(
         form="Form 8938",
         required=over_8938,
@@ -367,9 +411,7 @@ def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: b
     ))
 
     # ---- UK: Self Assessment ----
-    foreign_income = Decimal(str(profile.foreign_source_income_or_gains_gbp)) \
-        if profile.foreign_source_income_or_gains_gbp is not None else None
-    sa106_required = foreign_income is not None and foreign_income > 0
+    sa106_required, sa109_required, sa100_required = uk_sa_required(profile)
     flags.append(FilingFlag(
         form="SA106 (Foreign)",
         jurisdiction="UK",
@@ -380,11 +422,6 @@ def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: b
         citation_key="sa106_foreign",
     ))
 
-    sa109_required = (
-        profile.uk_tax_residence != UkResidenceStatus.full_year_resident
-        or profile.uk_non_domiciled
-        or profile.claims_uk_remittance_basis
-    )
     if sa109_required:
         sa109_triggers = []
         if profile.uk_tax_residence == UkResidenceStatus.split_year:
@@ -406,7 +443,6 @@ def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: b
         citation_key="sa109_residence",
     ))
 
-    sa100_required = sa106_required or sa109_required
     flags.append(FilingFlag(
         form="SA100 (Self Assessment)",
         jurisdiction="UK",
@@ -433,8 +469,8 @@ def analyze(profile: TaxProfile) -> AnalyzeResponse:
         result=f"income ${income_usd}, UK tax ${uk_tax_usd}",
     )
 
-    feie = compute_feie(income_usd, profile)
-    ftc = compute_ftc(income_usd, uk_tax_usd, profile)
+    feie, feie_excluded = compute_feie(income_usd, profile)
+    ftc, ftc_credit = compute_ftc(income_usd, uk_tax_usd, profile)
     feie.trace.insert(0, fx_trace)
     ftc.trace.insert(0, fx_trace)
 
@@ -460,8 +496,51 @@ def analyze(profile: TaxProfile) -> AnalyzeResponse:
 
     flags = compute_filing_flags(profile, recommended, feie.eligible)
 
+    # Emit a preview for every form the engine can speak to, election form
+    # first since its bottom line feeds the schedule. Schedule 1-A's builder
+    # returns None for TY2024 (the form first exists for TY2025).
+    form_previews = []
+    if recommended == "FEIE":
+        form_previews.append(build_form_2555(income_usd, feie_excluded, FEIE_LIMIT_2024, profile.days_abroad))
+        form_previews.append(build_schedule_1(feie_excluded))
+    else:
+        std = STANDARD_DEDUCTION_2024[profile.filing_status]
+        taxable = max(Decimal("0"), income_usd - std)
+        gross_tax = tax_from_brackets(taxable, profile.filing_status)
+        form_previews.append(build_form_1116(income_usd, std, gross_tax, uk_tax_usd, ftc_credit))
+        form_previews.append(build_schedule_3(ftc_credit))
+    if profile.pfic_distribution_or_disposal:
+        form_previews.append(build_schedule_2())
+    pfic_value, pfic_required = pfic_8621_required(profile)
+    if pfic_required:
+        form_previews.append(build_form_8621(pfic_value, profile.pfic_distribution_or_disposal))
+    if profile.uk_workplace_pension:
+        form_previews.append(build_form_8833())
+    balance_8938, required_8938 = form_8938_required(profile)
+    if required_8938:
+        form_previews.append(build_form_8938(
+            balance_8938, FORM_8938_THRESHOLD_ABROAD[profile.filing_status], files_8621=pfic_required,
+        ))
+    schedule_1a = build_schedule_1a()
+    if schedule_1a is not None:
+        form_previews.append(schedule_1a)
+
+    # UK side — main return last, since the supplementary pages attach to it
+    sa106_req, sa109_req, sa100_req = uk_sa_required(profile)
+    if sa106_req:
+        form_previews.append(build_sa106(Decimal(str(profile.foreign_source_income_or_gains_gbp))))
+    if sa109_req:
+        form_previews.append(build_sa109(
+            non_resident=(profile.uk_tax_residence == UkResidenceStatus.non_resident),
+            split_year=(profile.uk_tax_residence == UkResidenceStatus.split_year),
+            non_dom_or_remittance=(profile.uk_non_domiciled or profile.claims_uk_remittance_basis),
+        ))
+    if sa100_req:
+        form_previews.append(build_sa100(has_sa106=sa106_req, has_sa109=sa109_req))
+
     citation_keys = [s.citation_key for r in (feie, ftc) for s in r.trace if s.citation_key]
     citation_keys += [f.citation_key for f in flags if f.required and f.citation_key]
+    citation_keys += [ln.citation_key for fp in form_previews for ln in fp.lines if ln.citation_key]
     citations = [Citation(**snip) for snip in get_snippets(citation_keys)]
 
     us_tax_impact = feie.us_tax_owed if recommended == "FEIE" else ftc.us_tax_owed
@@ -473,6 +552,7 @@ def analyze(profile: TaxProfile) -> AnalyzeResponse:
         recommendation_reason=reason,
         us_tax_impact=us_tax_impact,
         filing_flags=flags,
+        form_previews=form_previews,
         citations=citations,
         explanation="",  # filled in by the LLM layer (explanation only, never math)
         explanation_provider="",
