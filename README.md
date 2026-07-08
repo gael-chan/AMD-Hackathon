@@ -43,10 +43,10 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 |---|---|
 | UK salary (£) | FEIE vs FTC comparison — exact figures |
 | UK tax paid (£) | Recommended route + estimated US tax impact |
-| Filing status | Filing flags: Form 1116, 2555, FBAR, Form 8938 |
-| Days abroad | Cited IRS / HMRC / US–UK treaty paragraphs |
-| Dependents | Full deterministic calculation trace |
-| Foreign account balance | Plain-English AI explanation of every figure |
+| Filing status | 13 US & UK filing flags — see [Forms Coverage](#forms-coverage) |
+| Days abroad | Deterministic line-by-line form previews |
+| Dependents · foreign accounts | Cited IRS / HMRC / US–UK treaty paragraphs |
+| ISA / PFIC holdings · pension | Full calculation trace + plain-English AI explanation |
 
 ### What makes this different
 
@@ -58,6 +58,42 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 | Generic advice | Flags the exact forms you need to file |
 
 > **Core architectural law:** The LLM never touches numbers. Deterministic Python functions run all tax math. The LLM receives pre-computed results + pre-fetched citations and returns plain English only. Break this rule and the audit claim dies.
+
+---
+
+## Forms Coverage
+
+Every form gets a **flag** (required or not, with a cited reason). Most also get a **preview** — the exact line entries, computed deterministically with verbatim captions from the official form. Form structures track the newest official revisions — including the brand-new Schedule 1-A and the UK's post-remittance-basis FIG-regime pages. A preview line shows **"—"** whenever the amount needs data outside demo scope: the engine never prints a number it didn't compute.
+
+### 🇺🇸 US — IRS / FinCEN
+
+| Form | What it is | Flag | Line preview |
+|---|---|:---:|:---:|
+| **Form 2555** | FEIE election — income chain, cap, exclusion → Schedule 1 | ✅ | ✅ full |
+| **Form 1116** | Foreign Tax Credit — §904 limitation chain → Schedule 3 | ✅ | ✅ full |
+| **Schedule 1** (1040) | FEIE exclusion entered as negative on line 8d | ✅ | ✅ full |
+| **Schedule 2** (1040) | Additional taxes — §1291 PFIC tax lands here | ✅ | ◐ partial¹ |
+| **Schedule 3** (1040) | FTC credit claimed on line 1 | ✅ | ✅ full |
+| **Schedule 1-A** (1040) | Tips/overtime/car-loan/senior deductions — the newest 1040 schedule | ✅² | —² |
+| **Form 8621** | PFIC information return — **the Stocks & Shares ISA trap** | ✅ | ◐ partial³ |
+| **Form 8833** | Treaty-based position disclosure (Article 18 pension deferral) | ✅ | ✅ text template |
+| **Form 8938** | FATCA statement of foreign financial assets | ✅ | ◐ partial⁴ |
+| **FBAR** (FinCEN 114) | Foreign account report — e-filed with FinCEN, not the IRS | ✅ | — |
+
+### 🇬🇧 UK — HMRC Self Assessment
+
+| Form | What it is | Flag | Line preview |
+|---|---|:---:|:---:|
+| **SA100** | Main Self Assessment return — TR2 supplementary-page answers | ✅ | ✅ |
+| **SA106** | Foreign pages — non-UK income + Foreign Tax Credit Relief | ✅ | ◐ partial⁵ |
+| **SA109** | Residence, domicile & FIG regime pages | ✅ | ◐ partial⁶ |
+
+¹ NIIT/AMT not evaluated; Additional Medicare Tax deterministically $0 via the US–UK Totalization Agreement.
+² Brand-new schedule — the flag explains from which tax year it first applies; its line preview activates once multi-year support lands.
+³ Value-range checkbox and §1291-fund default computed; Part V is fully deterministic ($0) when no distribution occurred, honest-blank when one did (needs distribution history).
+⁴ Summary value + Part IV count of Forms 8621 (FATCA duplicate-reporting exception); per-account detail not collected.
+⁵ Income row computed; FTCR columns need the US withholding amount.
+⁶ Residence boxes computed; flags the remittance-basis → FIG regime transition (abolished 6 April 2025) for non-dom profiles.
 
 ---
 
@@ -109,9 +145,10 @@ Every output number traces through this chain to the source paragraph.
 **In scope:**
 
 - PAYE UK salary earner only
-- Single tax year (2024 constants)
+- Single tax year per analysis — form previews track the newest official form revisions
 - FTC vs FEIE election comparison
-- Filing flags: Form 1116, Form 2555, FBAR, Form 8938
+- 13 US & UK filing flags + deterministic form previews ([Forms Coverage](#forms-coverage))
+- PFIC/ISA detection (Form 8621), treaty disclosure (8833), FATCA (8938), UK Self Assessment (SA100/106/109)
 - Plain-English LLM explanation with cited paragraphs
 - Full calculation trace visible in UI
 
@@ -119,7 +156,7 @@ Every output number traces through this chain to the source paragraph.
 
 - Self-employment / freelance income
 - Multi-year carryforward
-- PFIC / Form 8621
+- PFIC §1291 excess-distribution tax math (Form 8621 is flagged & previewed; the deferred-tax computation needs distribution history)
 - Actually filing the forms
 - LLM chat / Q&A loop
 - Live FX rates
@@ -186,8 +223,16 @@ provenance/
 ├── backend/
 │   ├── main.py            # FastAPI — /analyze endpoint
 │   ├── models.py          # Pydantic schemas
-│   ├── tax_engine.py      # deterministic FEIE/FTC calculator
+│   ├── tax_engine.py      # deterministic FEIE/FTC calculator + filing flags
 │   ├── snippets.py        # curated IRS/HMRC/treaty citations
+│   ├── forms/             # deterministic line-by-line form previews
+│   │   ├── form2555.py    #   FEIE election      → Schedule 1
+│   │   ├── form1116.py    #   Foreign Tax Credit → Schedule 3
+│   │   ├── form8621.py    #   PFIC (the ISA trap)
+│   │   ├── form8833.py    #   treaty disclosure (Art. 18 pension)
+│   │   ├── form8938.py    #   FATCA
+│   │   ├── schedule1.py … schedule3.py, schedule1a.py
+│   │   └── sa100.py, sa106.py, sa109.py   # UK Self Assessment
 │   ├── llm/
 │   │   └── client.py      # AMD MI300X + Fireworks fallback
 │   └── requirements.txt
@@ -236,7 +281,9 @@ UK is the wedge market. The policy-to-code architecture extends to any dual-fili
 - [ ] Persistent filing history (tax_profiles + filings tables)
 - [ ] User auth + subscription
 - [ ] Policy-change alerts mapped to your specific filing
-- [ ] PFIC detection + Form 8621
+- [x] PFIC detection + Form 8621 flag & preview (§1291 tax math still to come)
+- [ ] Form 8621 §1291 excess-distribution computation (needs distribution history intake)
+- [ ] Fill the official PDFs with the computed line values
 - [ ] Brokerage CSV import
 - [ ] Multi-year carryforward tracking
 - [ ] What-if simulator (FTC vs FEIE with salary scenarios)
