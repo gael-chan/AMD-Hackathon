@@ -28,6 +28,23 @@ type FilingFlag = {
   citation_key: string | null;
 };
 
+type FormLine = {
+  line: string;
+  label: string;
+  value: number | null;
+  text_value: string | null;
+  citation_key: string | null;
+  note: string | null;
+};
+
+type FormPreview = {
+  form: string;
+  tax_year: number;
+  lines: FormLine[];
+  flows_to: string | null;
+  note: string | null;
+};
+
 type Citation = {
   key: string;
   source: string;
@@ -43,6 +60,7 @@ type AnalyzeResponse = {
   recommendation_reason: string;
   us_tax_impact: number;
   filing_flags: FilingFlag[];
+  form_previews: FormPreview[];
   citations: Citation[];
   explanation: string;
   explanation_provider: string;
@@ -331,6 +349,57 @@ export default function Home() {
               </div>
             ))}
           </div>
+
+          {result.form_previews.length > 0 && (
+            <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
+              <h3 className="text-lg font-semibold">Form previews</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Deterministic line entries computed by the engine — not a filed return.
+              </p>
+              {result.form_previews.map((fp) => (
+                <div key={fp.form} className="mt-4 rounded-lg border border-slate-700 bg-slate-900 p-4">
+                  <div className="flex items-baseline justify-between">
+                    <p className="font-semibold">📄 {fp.form}</p>
+                    <span className="font-mono text-xs text-slate-500">TY{fp.tax_year}</span>
+                  </div>
+                  <table className="mt-3 w-full text-sm">
+                    <tbody>
+                      {fp.lines.map((ln) => (
+                        <tr key={ln.line} className="border-t border-slate-800">
+                          <td className="w-12 py-2 pr-3 align-top font-mono text-slate-400">{ln.line}</td>
+                          <td className="py-2 pr-3 align-top text-slate-300">
+                            {ln.label}
+                            {ln.note && <span className="mt-0.5 block text-xs text-slate-500">{ln.note}</span>}
+                          </td>
+                          {ln.text_value !== null ? (
+                            <td className="max-w-[16rem] py-2 text-right align-top text-xs italic text-sky-200/90">
+                              {ln.text_value}
+                            </td>
+                          ) : (
+                            <td
+                              className={`py-2 text-right align-top font-mono ${
+                                ln.value === null ? 'text-slate-500' : 'text-emerald-400'
+                              }`}
+                            >
+                              {ln.value === null
+                                ? '—'
+                                : ln.value < 0
+                                  ? `(${Math.abs(ln.value).toLocaleString('en-US', { minimumFractionDigits: 2 })})`
+                                  : ln.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {fp.flows_to && (
+                    <p className="mt-2 text-xs font-medium text-sky-400">→ flows to {fp.flows_to}</p>
+                  )}
+                  {fp.note && <p className="mt-1 text-xs text-slate-500">{fp.note}</p>}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
             <div className="flex items-center justify-between">

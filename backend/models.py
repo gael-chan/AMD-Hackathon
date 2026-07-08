@@ -78,6 +78,23 @@ class FilingFlag(BaseModel):
     citation_key: Optional[str] = None
 
 
+class FormLine(BaseModel):
+    line: str  # e.g. "8d"
+    label: str  # exact caption from the official form
+    value: Optional[float] = None  # None = form line applies but amount is outside demo scope
+    text_value: Optional[str] = None  # for disclosure forms whose entries are text, not amounts
+    citation_key: Optional[str] = None
+    note: Optional[str] = None
+
+
+class FormPreview(BaseModel):
+    form: str  # e.g. "Schedule 1 (Form 1040)"
+    tax_year: int
+    lines: list[FormLine]
+    flows_to: Optional[str] = None  # where the bottom line lands
+    note: Optional[str] = None  # scope caveats for this form
+
+
 class Citation(BaseModel):
     key: str
     source: str
@@ -93,6 +110,7 @@ class AnalyzeResponse(BaseModel):
     recommendation_reason: str
     us_tax_impact: float
     filing_flags: list[FilingFlag]
+    form_previews: list[FormPreview] = []
     citations: list[Citation]
     explanation: str
     explanation_provider: str  # "amd" | "fireworks" | "deterministic-fallback"
