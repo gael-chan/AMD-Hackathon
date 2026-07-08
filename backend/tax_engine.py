@@ -17,6 +17,7 @@ from models import (
     UkResidenceStatus,
 )
 from forms import (
+    build_form_1040,
     build_form_1116,
     build_form_2555,
     build_form_8621,
@@ -304,8 +305,16 @@ def uk_sa_required(profile: TaxProfile) -> tuple[bool, bool, bool]:
 
 
 def compute_filing_flags(profile: TaxProfile, recommended: str, feie_eligible: bool) -> list[FilingFlag]:
-    # ---- US: route election forms ----
+    # ---- US: the core return ----
     flags = [
+        FilingFlag(
+            form="Form 1040",
+            required=True,
+            reason="The core return — a US citizen files on worldwide income regardless of residence; "
+            "every schedule and election form attaches to it.",
+            citation_key="form_1040_core",
+        ),
+        # ---- US: route election forms ----
         FilingFlag(
             form="Form 2555",
             required=(recommended == "FEIE"),
@@ -500,15 +509,34 @@ def analyze(profile: TaxProfile) -> AnalyzeResponse:
     # first since its bottom line feeds the schedule. Schedule 1-A's builder
     # returns None for TY2024 (the form first exists for TY2025).
     form_previews = []
+    std = STANDARD_DEDUCTION_2024[profile.filing_status]
+    ctc_available = CHILD_TAX_CREDIT_PER_CHILD * profile.dependents
     if recommended == "FEIE":
         form_previews.append(build_form_2555(income_usd, feie_excluded, FEIE_LIMIT_2024, profile.days_abroad))
         form_previews.append(build_schedule_1(feie_excluded))
+        # Line 16 via the Foreign Earned Income Tax Worksheet, mirroring compute_feie
+        taxable_after_exclusion = max(Decimal("0"), income_usd - feie_excluded - std)
+        line_16 = max(Decimal("0"),
+                      tax_from_brackets(taxable_after_exclusion + feie_excluded, profile.filing_status)
+                      - tax_from_brackets(feie_excluded, profile.filing_status))
+        form_previews.append(build_form_1040(
+            route="FEIE", filing_status=profile.filing_status, income_usd=income_usd,
+            standard_deduction=std, schedule_1_amount=-feie_excluded, line_16_tax=line_16,
+            ctc_applied=min(line_16, ctc_available), schedule_3_credit=Decimal("0"),
+            pfic_distribution_pending=profile.pfic_distribution_or_disposal,
+        ))
     else:
-        std = STANDARD_DEDUCTION_2024[profile.filing_status]
         taxable = max(Decimal("0"), income_usd - std)
         gross_tax = tax_from_brackets(taxable, profile.filing_status)
         form_previews.append(build_form_1116(income_usd, std, gross_tax, uk_tax_usd, ftc_credit))
         form_previews.append(build_schedule_3(ftc_credit))
+        form_previews.append(build_form_1040(
+            route="FTC", filing_status=profile.filing_status, income_usd=income_usd,
+            standard_deduction=std, schedule_1_amount=Decimal("0"), line_16_tax=gross_tax,
+            ctc_applied=min(max(Decimal("0"), gross_tax - ftc_credit), ctc_available),
+            schedule_3_credit=ftc_credit,
+            pfic_distribution_pending=profile.pfic_distribution_or_disposal,
+        ))
     if profile.pfic_distribution_or_disposal:
         form_previews.append(build_schedule_2())
     pfic_value, pfic_required = pfic_8621_required(profile)
