@@ -76,6 +76,103 @@ SNIPPETS: dict[str, dict] = {
         ),
         "url": "https://www.irs.gov/forms-pubs/about-form-8938",
     },
+    "form_8621_pfic": {
+        "source": "IRS — Form 8621 instructions (2024)",
+        "reference": "26 USC §1291–1298; §1298(f) reporting; de minimis exception ($25,000 / $50,000 MFJ)",
+        "text": (
+            "A US person who is a direct or indirect shareholder of a Passive Foreign Investment "
+            "Company must file Form 8621 for each PFIC. Non-US pooled funds — including UK unit "
+            "trusts, OEICs, and ETFs held inside a Stocks & Shares ISA — are generally PFICs; the "
+            "ISA wrapper is not recognized by the IRS. Filing is excused under the de minimis "
+            "exception only if aggregate PFIC value is $25,000 or less ($50,000 married filing "
+            "jointly) AND there was no excess distribution, disposition, or QEF/mark-to-market "
+            "election during the year."
+        ),
+        "url": "https://www.irs.gov/forms-pubs/about-form-8621",
+    },
+    "form_8833_treaty": {
+        "source": "IRS — Form 8833 instructions; 26 USC §6114",
+        "reference": "Treaty-based return position disclosure; US–UK Treaty Article 18 (pension schemes)",
+        "text": (
+            "A taxpayer who takes a position that a US tax treaty overrides or modifies the "
+            "Internal Revenue Code must disclose it on Form 8833. Relying on Article 18 of the "
+            "US–UK treaty to defer US tax on earnings accruing inside a UK workplace pension "
+            "scheme is a treaty-based position commonly disclosed this way."
+        ),
+        "url": "https://www.irs.gov/forms-pubs/about-form-8833",
+    },
+    "schedule_1a_2025": {
+        "source": "IRS — Schedule 1-A (Form 1040), Additional Deductions",
+        "reference": "New for tax year 2025 — deductions for tips, overtime, car loan interest, seniors",
+        "text": (
+            "Schedule 1-A (Form 1040) is a new schedule first applicable to tax year 2025 returns, "
+            "used to claim the deductions for qualified tips, overtime pay, car loan interest, and "
+            "the enhanced senior deduction. It does not exist for tax year 2024 returns."
+        ),
+        "url": "https://www.irs.gov/newsroom/schedule-1-a-additional-deductions-what-to-know-about-the-new-form",
+    },
+    "schedule_1_2555": {
+        "source": "IRS — Schedule 1 (Form 1040), Form 2555 instructions (2024)",
+        "reference": "Schedule 1, line 8d — Foreign earned income exclusion from Form 2555",
+        "text": (
+            "A taxpayer who elects the Foreign Earned Income Exclusion on Form 2555 reports the "
+            "excluded amount as a negative entry on Schedule 1 (Form 1040), line 8d. Schedule 1 "
+            "must be attached to Form 1040 whenever this exclusion is claimed."
+        ),
+        "url": "https://www.irs.gov/forms-pubs/schedules-for-form-1040",
+    },
+    "schedule_3_ftc": {
+        "source": "IRS — Schedule 3 (Form 1040) instructions (2024)",
+        "reference": "Schedule 3, Part I, line 1 — Foreign tax credit (attach Form 1116 if required)",
+        "text": (
+            "The Foreign Tax Credit computed on Form 1116 is carried to Schedule 3 (Form 1040), "
+            "line 1, which then flows to Form 1040. Schedule 3 must be attached whenever the "
+            "credit is claimed."
+        ),
+        "url": "https://www.irs.gov/forms-pubs/schedules-for-form-1040",
+    },
+    "totalization_agreement": {
+        "source": "SSA — US–UK Totalization Agreement (1985, as amended 1997)",
+        "reference": "Agreement on Social Security, Article 4 — coverage exemption for detached/local UK employment",
+        "text": (
+            "Under the US–UK Totalization Agreement, wages of a US citizen employed and covered "
+            "under the UK National Insurance system are generally exempt from US Social Security "
+            "and Medicare (FICA) taxes, including the Additional Medicare Tax, which piggybacks on "
+            "the same wage base. Schedule 2 (Form 1040) additional taxes — Net Investment Income "
+            "Tax, AMT, and PFIC §1291 excess-distribution tax — are not evaluated by this tool."
+        ),
+        "url": "https://www.ssa.gov/international/Agreement_Pamphlets/uk.html",
+    },
+    "sa100_main": {
+        "source": "HMRC — Self Assessment tax returns: Overview",
+        "reference": "Who must complete a Self Assessment tax return (SA100)",
+        "text": (
+            "A Self Assessment return (SA100) is required for untaxed income not collected via "
+            "PAYE, including foreign income, and is mandatory whenever supplementary pages such "
+            "as SA106 (Foreign) or SA109 (Residence) must be filed, since they attach to the SA100."
+        ),
+        "url": "https://www.gov.uk/self-assessment-tax-returns",
+    },
+    "sa106_foreign": {
+        "source": "HMRC — Self Assessment: Foreign (SA106) notes",
+        "reference": "SA106 — reporting foreign income/gains and claiming Foreign Tax Credit Relief",
+        "text": (
+            "The Foreign pages (SA106) must be completed to report non-UK-source income and "
+            "gains and to claim Foreign Tax Credit Relief for tax already paid to another "
+            "country on that income, e.g. US withholding on US-sourced RSU income."
+        ),
+        "url": "https://www.gov.uk/government/publications/self-assessment-foreign-sa106",
+    },
+    "sa109_residence": {
+        "source": "HMRC — Self Assessment: Residence, remittance basis etc (SA109) notes",
+        "reference": "SA109 — residence, domicile, split-year treatment, and remittance basis claims",
+        "text": (
+            "The Residence, remittance basis etc pages (SA109) must be completed if not UK "
+            "resident for the full year, due split-year treatment, non-UK domiciled, or electing "
+            "the remittance basis of taxation for foreign income or gains."
+        ),
+        "url": "https://www.gov.uk/government/publications/self-assessment-residence-remittance-basis-etc-sa109",
+    },
 }
 
 

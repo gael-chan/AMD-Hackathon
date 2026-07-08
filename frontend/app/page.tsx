@@ -22,6 +22,7 @@ type RouteResult = {
 
 type FilingFlag = {
   form: string;
+  jurisdiction: string;
   required: boolean;
   reason: string;
   citation_key: string | null;
@@ -132,6 +133,15 @@ export default function Home() {
     days_abroad: '340',
     dependents: '0',
     foreign_account_balance: '',
+    pfic_holdings_value: '',
+    foreign_source_income_or_gains_gbp: '',
+    uk_tax_residence: 'full_year_resident',
+  });
+  const [checks, setChecks] = useState({
+    pfic_distribution_or_disposal: false,
+    uk_workplace_pension: false,
+    uk_non_domiciled: false,
+    claims_uk_remittance_basis: false,
   });
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -152,9 +162,17 @@ export default function Home() {
         filing_status: form.filing_status,
         days_abroad: Number(form.days_abroad),
         dependents: Number(form.dependents),
+        uk_tax_residence: form.uk_tax_residence,
+        ...checks,
       };
       if (form.foreign_account_balance !== '') {
         body.foreign_account_balance = Number(form.foreign_account_balance);
+      }
+      if (form.pfic_holdings_value !== '') {
+        body.pfic_holdings_value = Number(form.pfic_holdings_value);
+      }
+      if (form.foreign_source_income_or_gains_gbp !== '') {
+        body.foreign_source_income_or_gains_gbp = Number(form.foreign_source_income_or_gains_gbp);
       }
       const res = await fetch(`${API_URL}/analyze`, {
         method: 'POST',
@@ -214,6 +232,42 @@ export default function Home() {
           <label className={label}>Foreign accounts ($, optional)</label>
           <input className={field} type="number" min="0" placeholder="peak balance" value={form.foreign_account_balance} onChange={set('foreign_account_balance')} />
         </div>
+        <div>
+          <label className={label}>PFIC holdings ($, optional)</label>
+          <input className={field} type="number" min="0" placeholder="e.g. funds in a Stocks & Shares ISA" value={form.pfic_holdings_value} onChange={set('pfic_holdings_value')} />
+        </div>
+        <div>
+          <label className={label}>Non-UK income/gains (£, optional)</label>
+          <input className={field} type="number" min="0" placeholder="e.g. US brokerage income" value={form.foreign_source_income_or_gains_gbp} onChange={set('foreign_source_income_or_gains_gbp')} />
+        </div>
+        <div>
+          <label className={label}>UK tax residence</label>
+          <select className={field} value={form.uk_tax_residence} onChange={set('uk_tax_residence')}>
+            <option value="full_year_resident">Full-year UK resident</option>
+            <option value="split_year">Split year</option>
+            <option value="non_resident">Non-resident</option>
+          </select>
+        </div>
+        <div className="col-span-2 flex flex-wrap gap-x-6 gap-y-2 md:col-span-3">
+          {(
+            [
+              ['uk_workplace_pension', 'UK workplace pension'],
+              ['pfic_distribution_or_disposal', 'Sold/received distribution from PFIC'],
+              ['uk_non_domiciled', 'Non-UK domiciled'],
+              ['claims_uk_remittance_basis', 'Claiming remittance basis'],
+            ] as const
+          ).map(([key, text]) => (
+            <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-sky-500"
+                checked={checks[key]}
+                onChange={(e) => setChecks({ ...checks, [key]: e.target.checked })}
+              />
+              {text}
+            </label>
+          ))}
+        </div>
         <div className="col-span-2 md:col-span-3">
           <button
             type="submit"
@@ -250,23 +304,32 @@ export default function Home() {
 
           <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
             <h3 className="text-lg font-semibold">Filing flags</h3>
-            <ul className="mt-3 space-y-2">
-              {result.filing_flags.map((f) => (
-                <li key={f.form} className="flex items-start gap-3 text-sm">
-                  <span
-                    className={`mt-0.5 rounded px-2 py-0.5 text-xs font-bold ${
-                      f.required ? 'bg-amber-500 text-amber-950' : 'bg-slate-700 text-slate-300'
-                    }`}
-                  >
-                    {f.required ? 'FILE' : 'N/A'}
-                  </span>
-                  <span>
-                    <span className="font-medium">{f.form}</span>
-                    <span className="text-slate-400"> — {f.reason}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {(['US', 'UK'] as const).map((juris) => (
+              <div key={juris} className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {juris === 'US' ? '🇺🇸 US — IRS / FinCEN' : '🇬🇧 UK — HMRC Self Assessment'}
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {result.filing_flags
+                    .filter((f) => f.jurisdiction === juris)
+                    .map((f) => (
+                      <li key={f.form} className="flex items-start gap-3 text-sm">
+                        <span
+                          className={`mt-0.5 shrink-0 rounded px-2 py-0.5 text-xs font-bold ${
+                            f.required ? 'bg-amber-500 text-amber-950' : 'bg-slate-700 text-slate-300'
+                          }`}
+                        >
+                          {f.required ? 'FILE' : 'N/A'}
+                        </span>
+                        <span>
+                          <span className="font-medium">{f.form}</span>
+                          <span className="text-slate-400"> — {f.reason}</span>
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
           <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
