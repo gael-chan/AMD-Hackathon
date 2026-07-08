@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - AMD_API_KEY=${AMD_API_KEY:-}
+      - AMD_MODEL_ENDPOINT=${AMD_MODEL_ENDPOINT:-}
+      - AMD_MODEL=${AMD_MODEL:-}
+      - FIREWORKS_API_KEY=${FIREWORKS_API_KEY:-}
+      - FIREWORKS_MODEL=${FIREWORKS_MODEL:-}
+      - GBP_USD_RATE=${GBP_USD_RATE:-1.27}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend

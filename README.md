@@ -13,7 +13,7 @@
 
 **Built for AMD Developer Hackathon: ACT II · Unicorn Track · July 2026**
 
-[Demo](#quick-start) · [Architecture](#architecture) · [Data Model](docs/erd-v4.png) · [Full ERD Pack](docs/erd-v3-pack.pdf)
+[Demo](#quick-start) · [Architecture](#architecture) · [Data Model](docs/Erd.png) · [Full ERD Pack](docs/provenance_erd_v3_professional_pack.pdf)
 
 </div>
 
@@ -135,7 +135,7 @@ Every output number traces through this chain to the source paragraph.
 | Calculation | Pure Python · `Decimal` arithmetic · no floats |
 | Citation RAG | Curated dict — IRS / HMRC / US–UK treaty snippets |
 | LLM (primary) | AMD MI300X via AMD Developer Cloud |
-| LLM (fallback) | Fireworks AI — `accounts/fireworks/models/llama-v3p1-70b-instruct` |
+| LLM (fallback) | Fireworks AI — `accounts/fireworks/models/gpt-oss-120b` |
 | Frontend | Next.js 14 + Tailwind CSS |
 | Deployment | Docker Compose |
 
@@ -144,9 +144,9 @@ Every output number traces through this chain to the source paragraph.
 ## Quick Start
 
 ```bash
-git clone https://github.com/V-Vekaria/provenance
-cd provenance
-cp .env.example .env        # add your AMD + Fireworks keys
+git clone https://github.com/V-Vekaria/AMD-Hackathon
+cd AMD-Hackathon
+cp .env.example .env        # add your AMD + Fireworks keys (optional — degrades gracefully)
 docker compose up --build
 ```
 
@@ -193,9 +193,9 @@ provenance/
 │   └── requirements.txt
 ├── frontend/              # Next.js — form + result card + trace viewer
 ├── docs/
-│   ├── architecture.png   # system architecture diagram
-│   ├── erd-v4.png         # data model (single image)
-│   └── erd-v3-pack.pdf    # full modular ERD + relationship catalogue
+│   ├── Architecture.png   # system architecture diagram
+│   ├── Erd.png            # data model (single image)
+│   └── provenance_erd_v3_professional_pack.pdf
 ├── docker-compose.yml
 ├── Dockerfile.backend
 ├── Dockerfile.frontend
@@ -208,9 +208,10 @@ provenance/
 ## Environment Variables
 
 ```bash
-# .env.example
+# .env.example — all keys optional; with none set the API returns the
+# deterministic trace summary instead of an LLM explanation
 AMD_API_KEY=your_amd_key_here
-AMD_MODEL_ENDPOINT=https://your-amd-endpoint/v1/chat/completions
+AMD_MODEL_ENDPOINT=https://your-amd-endpoint/v1/chat/completions   # OpenAI-compatible
 FIREWORKS_API_KEY=your_fireworks_key_here
 GBP_USD_RATE=1.27
 ```
