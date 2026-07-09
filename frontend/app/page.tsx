@@ -76,14 +76,13 @@ export default function ForestLanding() {
             </a>
           </div>
         </div>
-        <div className="rounded-2xl bg-[#344E41] p-2 shadow-[0_8px_32px_rgba(52,78,65,0.18)]">
+        <div className="flex items-end justify-center">
           <Image
-            src="/product-decision.png"
-            alt="Provenance recommending the Foreign Tax Credit, with FEIE and FTC compared and required filings listed"
-            width={1240}
-            height={860}
+            src="/hero-consultation.png"
+            alt="A tax adviser walking a client through her return"
+            width={608}
+            height={410}
             priority
-            className="rounded-xl"
           />
         </div>
       </section>
@@ -116,32 +115,30 @@ export default function ForestLanding() {
       {/* How it works */}
       <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-20">
         <h2 className="text-3xl font-semibold tracking-tight [font-family:var(--font-forest)] md:text-4xl">
-          Python does the math. The AI only explains it.
+          Trusted calculations. Transparent reasoning.
         </h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-[#A3B18A]/60 bg-[#E4E2D8] p-6 shadow-[0_8px_32px_rgba(52,78,65,0.08)]">
             <h3 className="text-lg font-semibold [font-family:var(--font-forest)]">Deterministic engine</h3>
             <p className="mt-3 text-[#3A5A40]/85">
-              Pure Python computes FEIE, FTC, and every 1040 line in exact decimals. No language
-              model ever touches a number.
+              Every figure on your tax return is calculated by a rigorously audited deterministic
+              engine. No language model ever touches a number.
             </p>
-            <code className="mt-4 block font-mono text-xs text-[#588157]">tax_engine.py</code>
           </div>
           <div className="rounded-2xl border border-[#A3B18A]/60 bg-[#E4E2D8] p-6 shadow-[0_8px_32px_rgba(52,78,65,0.08)]">
-            <h3 className="text-lg font-semibold [font-family:var(--font-forest)]">Curated citations</h3>
+            <h3 className="text-lg font-semibold [font-family:var(--font-forest)]">Backed by official tax guidance</h3>
             <p className="mt-3 text-[#3A5A40]/85">
-              Every computation carries the IRS, HMRC, or treaty paragraph that justifies it. Six
-              reliable sources beat six hundred uncertain ones.
+              Each calculation is linked to the relevant IRS, HMRC, or tax treaty guidance, so you
+              can see exactly why a deduction, credit, or liability applies.
             </p>
-            <code className="mt-4 block font-mono text-xs text-[#588157]">snippets.py</code>
           </div>
           <div className="rounded-2xl border border-[#A3B18A]/60 bg-[#E4E2D8] p-6 shadow-[0_8px_32px_rgba(52,78,65,0.08)]">
-            <h3 className="text-lg font-semibold [font-family:var(--font-forest)]">Plain-English explanation</h3>
+            <h3 className="text-lg font-semibold [font-family:var(--font-forest)]">Tax explanations in plain English</h3>
             <p className="mt-3 text-[#3A5A40]/85">
-              An LLM on AMD MI300X turns finished numbers into words you can repeat to an
-              accountant. It explains. It never calculates.
+              Complex tax rules become easy to understand. Highlights the reasoning behind each
+              figure, and helps you confidently discuss your return with your accountant or tax
+              adviser.
             </p>
-            <code className="mt-4 block font-mono text-xs text-[#588157]">llm/client.py</code>
           </div>
         </div>
       </section>
