@@ -90,14 +90,8 @@ export default function ForestLanding() {
 
       {/* Problem */}
       <section className="border-t border-[#A3B18A]/50 bg-[#CFCCBE]/50">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 lg:grid-cols-[1fr_1.3fr] lg:gap-16">
-          <div>
-            <p className="text-6xl font-semibold tracking-tight text-[#588157] [font-family:var(--font-forest)]">300,000</p>
-            <p className="mt-3 max-w-xs text-[#3A5A40]/80">
-              Americans live and work in the UK. Every year, each of them files taxes twice.
-            </p>
-          </div>
-          <div>
+        <div className="mx-auto max-w-6xl px-4 py-20">
+          <div className="max-w-3xl">
             <h2 className="text-2xl font-semibold tracking-tight [font-family:var(--font-forest)]">
               Filing in both countries is a $1,500 problem.
             </h2>
@@ -263,7 +257,7 @@ export default function ForestLanding() {
       <section id="faq" className="mx-auto max-w-3xl px-4 py-20">
         <h2 className="text-3xl font-semibold tracking-tight [font-family:var(--font-forest)] md:text-4xl">Questions</h2>
         <div className="mt-8 divide-y divide-[#A3B18A]/60 border-y border-[#A3B18A]/60">
-          <details className="group py-5">
+          <details name="faq" className="group py-5">
             <summary className="cursor-pointer list-none font-medium text-[#344E41] transition-colors duration-200 hover:text-[#588157]">
               Is this tax advice?
             </summary>
@@ -272,7 +266,7 @@ export default function ForestLanding() {
               every step, then review with a professional. It does not file on your behalf.
             </p>
           </details>
-          <details className="group py-5">
+          <details name="faq" className="group py-5">
             <summary className="cursor-pointer list-none font-medium text-[#344E41] transition-colors duration-200 hover:text-[#588157]">
               Which forms does it cover?
             </summary>
@@ -281,7 +275,7 @@ export default function ForestLanding() {
               Forms 2555, 1116, 8621, 8833 and 8938, the FBAR, and UK SA100, SA106 and SA109.
             </p>
           </details>
-          <details className="group py-5">
+          <details name="faq" className="group py-5">
             <summary className="cursor-pointer list-none font-medium text-[#344E41] transition-colors duration-200 hover:text-[#588157]">
               Does the AI compute my taxes?
             </summary>
@@ -290,7 +284,7 @@ export default function ForestLanding() {
               model receives finished numbers and citations, and returns only prose.
             </p>
           </details>
-          <details className="group py-5">
+          <details name="faq" className="group py-5">
             <summary className="cursor-pointer list-none font-medium text-[#344E41] transition-colors duration-200 hover:text-[#588157]">
               What is a PFIC?
             </summary>
@@ -300,7 +294,7 @@ export default function ForestLanding() {
               on Form 8621.
             </p>
           </details>
-          <details className="group py-5">
+          <details name="faq" className="group py-5">
             <summary className="cursor-pointer list-none font-medium text-[#344E41] transition-colors duration-200 hover:text-[#588157]">
               Where does my data go?
             </summary>
