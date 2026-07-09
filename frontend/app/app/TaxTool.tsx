@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Fragment, useEffect, useRef, useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -601,7 +602,9 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
     <main className="mx-auto max-w-4xl px-4 py-10">
       <header className="mb-8">
         <h1 className="flex items-center gap-3 text-3xl font-bold">
-          🧾 Provenance
+          <Link href="/" className="transition-opacity hover:opacity-75">
+            🧾 Provenance
+          </Link>
           {tier === 'free' && (
             <span className="rounded-full border border-[#A3B18A] px-3 py-1 text-xs font-medium text-[#3A5A40]/80">
               Free estimate
