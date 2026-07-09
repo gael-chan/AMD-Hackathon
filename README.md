@@ -63,7 +63,7 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 
 ## Forms Coverage
 
-Every form gets a **flag** (required or not, with a cited reason). Most also get a **preview** — the exact line entries, computed deterministically with verbatim captions from the official form. Form structures track the newest official revisions — including the brand-new Schedule 1-A and the UK's post-remittance-basis FIG-regime pages. A preview line shows **"—"** whenever the amount needs data outside demo scope: the engine never prints a number it didn't compute.
+Every form gets a **flag** (required or not, with a cited reason). Most also get a **preview** — the exact line entries, computed deterministically with verbatim captions from the official form. The demo chain (Form 1040, 1116, 2555, Schedules 1 & 3) also downloads as **filled official PDFs** — generated in memory from vendored blank templates and never stored, individually or as a ZIP packet with a provenance manifest. Form structures track the newest official revisions — including the brand-new Schedule 1-A and the UK's post-remittance-basis FIG-regime pages. A preview line shows **"—"** whenever the amount needs data outside demo scope: the engine never prints a number it didn't compute.
 
 ### 🇺🇸 US — IRS / FinCEN
 
@@ -291,7 +291,8 @@ UK is the wedge market. The policy-to-code architecture extends to any dual-fili
 - [ ] Policy-change alerts mapped to your specific filing
 - [x] PFIC detection + Form 8621 flag & preview (§1291 tax math still to come)
 - [ ] Form 8621 §1291 excess-distribution computation (needs distribution history intake)
-- [ ] Fill the official PDFs with the computed line values
+- [x] Fill the official PDFs — demo chain done (1040, 1116, 2555, Schedules 1 & 3; per-form download + ZIP packet with provenance manifest)
+- [ ] PDF filling for the disclosure forms (8621/8833/8938) and UK SA pages (HMRC PDFs are print-only — needs coordinate overlay)
 - [ ] Brokerage CSV import
 - [ ] Multi-year carryforward tracking
 - [ ] What-if simulator (FTC vs FEIE with salary scenarios)
