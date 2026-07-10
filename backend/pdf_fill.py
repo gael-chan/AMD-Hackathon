@@ -10,6 +10,7 @@ rule extends to PDFs. Filled files are returned as bytes and never written
 to disk.
 """
 import io
+import re
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
@@ -18,7 +19,7 @@ from typing import Callable, Optional
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject
 
-from models import FilingStatus, FormPreview, TaxProfile
+from models import FilingStatus, FormPreview, PersonalInfo, TaxProfile
 
 TEMPLATES = Path(__file__).parent / "forms" / "templates"
 
@@ -182,6 +183,52 @@ def supported_forms() -> list[str]:
     return list(SPECS)
 
 
+def _digits(s: str) -> str:
+    return re.sub(r"\D", "", s or "")
+
+
+def _header_values(template: str, personal: PersonalInfo) -> dict[str, str]:
+    """Identity header fields per template (name/SSN slots, 1040 address and
+    dependents). Empty inputs are dropped — a blank never overwrites a field."""
+    full_name = f"{personal.first_name} {personal.last_name}".strip()
+    ssn = _digits(personal.ssn)
+    out: dict[str, str] = {}
+
+    if template in ("f1040s1.pdf", "f1040s3.pdf", "f1116.pdf"):
+        out = {"f1_01": full_name, "f1_02": ssn}
+    elif template == "f2555.pdf":
+        address = ", ".join(x for x in [
+            personal.street_address, personal.city,
+            personal.foreign_province, personal.foreign_country,
+        ] if x)
+        out = {"f1_1": full_name, "f1_2": ssn, "f1_3": address}
+    elif template == "f1040.pdf":
+        out = {
+            "f1_14": personal.first_name,
+            "f1_15": personal.last_name,
+            "f1_16": ssn,
+            "f1_20": personal.street_address,
+            "f1_21": personal.apt_no,
+            "f1_22": personal.city,
+            "f1_23": personal.state,
+            "f1_24": personal.zip_code,
+            "f1_25": personal.foreign_country,
+            "f1_26": personal.foreign_province,
+            "f1_27": personal.foreign_postal_code,
+        }
+        first_names = ["f1_31", "f1_32", "f1_33", "f1_34"]
+        last_names = ["f1_35", "f1_36", "f1_37", "f1_38"]
+        ssns = ["f1_39", "f1_40", "f1_41", "f1_42"]
+        relations = ["f1_43", "f1_44", "f1_45", "f1_46"]
+        for i, dep in enumerate(personal.dependents[:4]):
+            out[first_names[i]] = dep.first_name
+            out[last_names[i]] = dep.last_name
+            out[ssns[i]] = _digits(dep.ssn)
+            out[relations[i]] = dep.relationship
+
+    return {k: v for k, v in out.items() if v}
+
+
 def _full_name(obj) -> str:
     parts = []
     while obj is not None:
@@ -197,12 +244,14 @@ def _short(name: str) -> str:
     return name.split(".")[-1].replace("[0]", "").replace("[1]", "").replace("[2]", "")
 
 
-def fill_form(preview: FormPreview, profile: TaxProfile) -> bytes:
+def fill_form(preview: FormPreview, profile: TaxProfile, personal: Optional[PersonalInfo] = None) -> bytes:
     """Fill the official template for this preview; returns PDF bytes."""
     spec = SPECS[preview.form]
     abs_fields = ABS_FIELDS.get(spec.template, set())
 
     values: dict[str, str] = {}
+    if personal is not None:
+        values.update(_header_values(spec.template, personal))
     for ln in preview.lines:
         short = spec.fields.get(ln.line)
         if short is None:
