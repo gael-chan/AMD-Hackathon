@@ -82,11 +82,42 @@ def test_supported_forms_registry():
     assert set(supported_forms()) == set(FTC_FORMS) | set(FEIE_FORMS)
 
 
+def test_personal_header_round_trip():
+    from models import DependentInfo, PersonalInfo
+
+    personal = PersonalInfo(
+        first_name="Sarah", last_name="Whitfield", ssn="123-45-6789",
+        street_address="14 Cedar Row", city="London",
+        foreign_country="United Kingdom", foreign_postal_code="N1 7AA",
+        dependents=[DependentInfo(first_name="Rosa", last_name="Whitfield",
+                                  ssn="987-65-4321", relationship="Daughter")],
+    )
+    # Schedule 3: single name + SSN header
+    filled = read_short_fields(fill_form(preview_for(FTC_PROFILE, "Schedule 3 (Form 1040)"),
+                                         FTC_PROFILE, personal))
+    assert filled["f1_01"] == "Sarah Whitfield"
+    assert filled["f1_02"] == "123456789"  # digits only for comb fields
+    # 1040: split name, address, and dependent row
+    filled = read_short_fields(fill_form(preview_for(FTC_PROFILE, "Form 1040"),
+                                         FTC_PROFILE, personal))
+    assert filled["f1_14"] == "Sarah"
+    assert filled["f1_15"] == "Whitfield"
+    assert filled["f1_16"] == "123456789"
+    assert filled["f1_20"] == "14 Cedar Row"
+    assert filled["f1_25"] == "United Kingdom"
+    assert filled["f1_31"] == "Rosa"
+    assert filled["f1_39"] == "987654321"
+    assert filled["f1_43"] == "Daughter"
+    # no personal info -> headers stay blank
+    blank = read_short_fields(fill_form(preview_for(FTC_PROFILE, "Form 1040"), FTC_PROFILE))
+    assert "f1_14" not in blank and "f1_16" not in blank
+
+
 def test_packet_contents():
-    from main import download_packet
+    from main import PacketRequest, download_packet
     import asyncio
 
-    resp = asyncio.run(download_packet(FTC_PROFILE))
+    resp = asyncio.run(download_packet(PacketRequest(profile=FTC_PROFILE)))
     zf = zipfile.ZipFile(io.BytesIO(resp.body))
     names = set(zf.namelist())
     assert "manifest.txt" in names
