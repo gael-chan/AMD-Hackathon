@@ -78,6 +78,30 @@ class FilingFlag(BaseModel):
     citation_key: Optional[str] = None
 
 
+class DependentInfo(BaseModel):
+    first_name: str = ""
+    last_name: str = ""
+    ssn: str = ""
+    relationship: str = ""
+
+
+class PersonalInfo(BaseModel):
+    """Identity block for PDF header fields. Held in memory per request only —
+    never persisted, consistent with the nothing-stored promise."""
+    first_name: str = ""
+    last_name: str = ""
+    ssn: str = ""
+    street_address: str = ""
+    apt_no: str = ""
+    city: str = ""
+    state: str = ""
+    zip_code: str = ""
+    foreign_country: str = ""
+    foreign_province: str = ""
+    foreign_postal_code: str = ""
+    dependents: list[DependentInfo] = []
+
+
 class FormLine(BaseModel):
     line: str  # e.g. "8d"
     label: str  # exact caption from the official form
