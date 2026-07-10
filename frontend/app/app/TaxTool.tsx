@@ -162,6 +162,140 @@ function RouteCard({
   );
 }
 
+const gbp = (n: number) =>
+  n.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
+
+function WhatIfPanel({
+  baseBody,
+  baseSalary,
+  baseRoute,
+  baseImpact,
+}: {
+  baseBody: Record<string, unknown>;
+  baseSalary: number;
+  baseRoute: string;
+  baseImpact: number;
+}) {
+  const [salary, setSalary] = useState(baseSalary);
+  const [live, setLive] = useState<{ route: string; impact: number } | null>(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seqRef = useRef(0);
+
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      seqRef.current += 1; // drop any in-flight response after unmount
+    },
+    []
+  );
+
+  function runScenario(value: number) {
+    const seq = ++seqRef.current;
+    setLiveLoading(true);
+    setLiveError(false);
+    fetch(`${API_URL}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...baseBody, uk_salary: value }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`API error ${res.status}`);
+        return (await res.json()) as AnalyzeResponse;
+      })
+      .then((data) => {
+        if (seq !== seqRef.current) return;
+        setLive({ route: data.recommended_route, impact: data.us_tax_impact });
+        setLiveLoading(false);
+      })
+      .catch(() => {
+        if (seq !== seqRef.current) return;
+        setLiveError(true);
+        setLiveLoading(false);
+      });
+  }
+
+  const onSlide = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    setSalary(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runScenario(value), 400);
+  };
+
+  const shownRoute = live?.route ?? baseRoute;
+  const shownImpact = live?.impact ?? baseImpact;
+  const delta = shownImpact - baseImpact;
+  const higher = delta > 0;
+
+  // Anchor the step grid on baseSalary so the thumb can sit exactly on the
+  // analyzed salary (browsers snap range values to min + k*step).
+  const halfRange = Math.max(1000, Math.floor((baseSalary * 0.5) / 1000) * 1000);
+  const sliderMin = baseSalary - halfRange;
+  const sliderMax = baseSalary + halfRange;
+
+  return (
+    <div className="rounded-xl border border-[#A3B18A] bg-[#E4E2D8] p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-semibold">What if?</h3>
+        {liveLoading && (
+          <span className="animate-pulse text-xs font-medium text-[#3A5A40]/60">updating…</span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-[#3A5A40]/60">
+        Drag to see how the recommendation shifts with your UK salary — your original result above
+        stays untouched.
+      </p>
+      <div className="mt-4">
+        <div className="flex items-baseline justify-between">
+          <span className="text-xs font-medium uppercase tracking-wide text-[#3A5A40]/80">
+            UK salary
+          </span>
+          <span className="font-mono text-sm font-semibold text-[#344E41]">{gbp(salary)}</span>
+        </div>
+        <input
+          type="range"
+          min={sliderMin}
+          max={sliderMax}
+          step={1000}
+          value={salary}
+          onChange={onSlide}
+          aria-label="What-if UK salary"
+          className="mt-2 w-full accent-[#3A5A40]"
+        />
+        <div className="flex justify-between font-mono text-xs text-[#3A5A40]/60">
+          <span>{gbp(sliderMin)}</span>
+          <span>{gbp(sliderMax)}</span>
+        </div>
+        {liveError && (
+          <p className="mt-2 text-xs text-red-800">
+            Couldn&apos;t compute this scenario — adjust the slider to retry.
+          </p>
+        )}
+      </div>
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 rounded-lg border border-[#A3B18A] bg-[#EFEEE7] p-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]/70">
+            Recommended route
+          </p>
+          <p className="mt-0.5 text-xl font-bold text-[#344E41]">{shownRoute}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]/70">
+            Est. US tax impact
+          </p>
+          <p className="mt-0.5 text-xl font-bold text-[#344E41]">{usd(shownImpact)}</p>
+        </div>
+        <p className={`text-sm font-semibold ${higher ? 'text-amber-700' : 'text-[#588157]'}`}>
+          {delta === 0
+            ? 'no change vs your estimate'
+            : `${higher ? '+' : '−'}${usd(Math.abs(delta))} vs your estimate`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function FormPreviewTable({
   fp,
   citations,
@@ -716,6 +850,16 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
             <RouteCard result={result.feie} recommended={result.recommended_route === 'FEIE'} citations={result.citations} traceEnabled={tier !== 'free'} />
             <RouteCard result={result.ftc} recommended={result.recommended_route === 'FTC'} citations={result.citations} traceEnabled={tier !== 'free'} />
           </div>
+
+          {tier !== 'free' && analyzedBody && (
+            <WhatIfPanel
+              key={analysisId}
+              baseBody={analyzedBody}
+              baseSalary={Number(analyzedBody?.uk_salary ?? form.uk_salary)}
+              baseRoute={result.recommended_route}
+              baseImpact={result.us_tax_impact}
+            />
+          )}
 
           {tier === 'free' ? (
             <RequiredFilings
