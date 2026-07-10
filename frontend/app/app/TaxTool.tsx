@@ -88,21 +88,21 @@ function TraceViewer({ trace, citations }: { trace: TraceStep[]; citations: Cita
       {trace.map((t, i) => {
         const cite = citations.find((c) => c.key === t.citation_key);
         return (
-          <li key={i} className="rounded border border-[#A3B18A] bg-[#EFEEE7] p-3 text-sm">
+          <li key={i} className="rounded border border-[#A7C4BA] bg-[#FAFCFA] p-3 text-sm">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="font-medium text-[#344E41]">
+              <span className="font-medium text-[#1E3231]">
                 {i + 1}. {t.step}
               </span>
-              <span className="font-mono text-[#3A5A40]">{t.result}</span>
+              <span className="font-mono text-[#114B4C]">{t.result}</span>
             </div>
-            <div className="mt-1 font-mono text-xs text-[#3A5A40]/80">{t.formula}</div>
-            <div className="mt-1 font-mono text-xs text-[#3A5A40]/60">
+            <div className="mt-1 font-mono text-xs text-[#114B4C]/80">{t.formula}</div>
+            <div className="mt-1 font-mono text-xs text-[#114B4C]/60">
               {Object.entries(t.inputs)
                 .map(([k, v]) => `${k}=${v}`)
                 .join('  ·  ')}
             </div>
             {cite && (
-              <div className="mt-2 border-l-2 border-[#588157] pl-2 text-xs text-[#3A5A40]/80">
+              <div className="mt-2 border-l-2 border-[#2E7D6B] pl-2 text-xs text-[#114B4C]/80">
                 {cite.source} — {cite.reference}
               </div>
             )}
@@ -128,7 +128,7 @@ function RouteCard({
   return (
     <div
       className={`rounded-xl border p-5 ${
-        recommended ? 'border-[#3A5A40] bg-[#588157]/10' : 'border-[#A3B18A] bg-[#E4E2D8]'
+        recommended ? 'border-[#114B4C] bg-[#2E7D6B]/10' : 'border-[#A7C4BA] bg-[#E2EBE6]'
       }`}
     >
       <div className="flex items-center justify-between">
@@ -136,7 +136,7 @@ function RouteCard({
           {result.route === 'FEIE' ? 'Foreign Earned Income Exclusion' : 'Foreign Tax Credit'}
         </h3>
         {recommended && (
-          <span className="rounded-full bg-[#3A5A40] px-3 py-0.5 text-xs font-bold text-[#EFEEE7]">
+          <span className="rounded-full bg-[#114B4C] px-3 py-0.5 text-xs font-bold text-[#FAFCFA]">
             RECOMMENDED
           </span>
         )}
@@ -144,14 +144,14 @@ function RouteCard({
       {result.eligible ? (
         <p className="mt-2 text-3xl font-bold">{usd(result.us_tax_owed)}</p>
       ) : (
-        <p className="mt-2 text-3xl font-bold text-[#3A5A40]/60">Not eligible</p>
+        <p className="mt-2 text-3xl font-bold text-[#114B4C]/60">Not eligible</p>
       )}
-      <p className="mt-2 text-sm text-[#344E41]/90">{result.detail}</p>
+      <p className="mt-2 text-sm text-[#1E3231]/90">{result.detail}</p>
       {traceEnabled && (
         <>
           <button
             onClick={() => setShowTrace(!showTrace)}
-            className="mt-3 text-xs font-medium text-[#588157] hover:text-[#344E41]"
+            className="mt-3 text-xs font-medium text-[#2E7D6B] hover:text-[#1E3231]"
           >
             {showTrace ? '▾ Hide' : '▸ Show'} calculation trace ({result.trace.length} steps)
           </button>
@@ -235,23 +235,23 @@ function WhatIfPanel({
   const sliderMax = baseSalary + halfRange;
 
   return (
-    <div className="rounded-xl border border-[#A3B18A] bg-[#E4E2D8] p-5">
+    <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">What if?</h3>
         {liveLoading && (
-          <span className="animate-pulse text-xs font-medium text-[#3A5A40]/60">updating…</span>
+          <span className="animate-pulse text-xs font-medium text-[#114B4C]/60">updating…</span>
         )}
       </div>
-      <p className="mt-1 text-xs text-[#3A5A40]/60">
+      <p className="mt-1 text-xs text-[#114B4C]/60">
         Drag to see how the recommendation shifts with your UK salary — your original result above
         stays untouched.
       </p>
       <div className="mt-4">
         <div className="flex items-baseline justify-between">
-          <span className="text-xs font-medium uppercase tracking-wide text-[#3A5A40]/80">
+          <span className="text-xs font-medium uppercase tracking-wide text-[#114B4C]/80">
             UK salary
           </span>
-          <span className="font-mono text-sm font-semibold text-[#344E41]">{gbp(salary)}</span>
+          <span className="font-mono text-sm font-semibold text-[#1E3231]">{gbp(salary)}</span>
         </div>
         <input
           type="range"
@@ -261,9 +261,9 @@ function WhatIfPanel({
           value={salary}
           onChange={onSlide}
           aria-label="What-if UK salary"
-          className="mt-2 w-full accent-[#3A5A40]"
+          className="mt-2 w-full accent-[#114B4C]"
         />
-        <div className="flex justify-between font-mono text-xs text-[#3A5A40]/60">
+        <div className="flex justify-between font-mono text-xs text-[#114B4C]/60">
           <span>{gbp(sliderMin)}</span>
           <span>{gbp(sliderMax)}</span>
         </div>
@@ -273,20 +273,20 @@ function WhatIfPanel({
           </p>
         )}
       </div>
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 rounded-lg border border-[#A3B18A] bg-[#EFEEE7] p-4">
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2 rounded-lg border border-[#A7C4BA] bg-[#FAFCFA] p-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]/70">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/70">
             Recommended route
           </p>
-          <p className="mt-0.5 text-xl font-bold text-[#344E41]">{shownRoute}</p>
+          <p className="mt-0.5 text-xl font-bold text-[#1E3231]">{shownRoute}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]/70">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/70">
             Est. US tax impact
           </p>
-          <p className="mt-0.5 text-xl font-bold text-[#344E41]">{usd(shownImpact)}</p>
+          <p className="mt-0.5 text-xl font-bold text-[#1E3231]">{usd(shownImpact)}</p>
         </div>
-        <p className={`text-sm font-semibold ${higher ? 'text-amber-700' : 'text-[#588157]'}`}>
+        <p className={`text-sm font-semibold ${higher ? 'text-amber-700' : 'text-[#2E7D6B]'}`}>
           {delta === 0
             ? 'no change vs your estimate'
             : `${higher ? '+' : '−'}${usd(Math.abs(delta))} vs your estimate`}
@@ -308,9 +308,9 @@ function FormPreviewTable({
   const [openLine, setOpenLine] = useState<string | null>(null);
   const anyCited = !!citations && fp.lines.some((ln) => ln.citation_key);
   return (
-    <div className="mt-2 rounded-lg border border-[#A3B18A] bg-[#EFEEE7] p-4">
+    <div className="mt-2 rounded-lg border border-[#A7C4BA] bg-[#FAFCFA] p-4">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-xs text-[#3A5A40]/60">
+        <p className="text-xs text-[#114B4C]/60">
           Deterministic line entries — not a filed return.
           {anyCited && ' Click a cited line to see the law behind it.'}
         </p>
@@ -318,12 +318,12 @@ function FormPreviewTable({
           {onDownload && (
             <button
               onClick={onDownload}
-              className="rounded bg-[#3A5A40] px-2.5 py-1 text-xs font-semibold text-[#EFEEE7] hover:bg-[#344E41]"
+              className="rounded bg-[#114B4C] px-2.5 py-1 text-xs font-semibold text-[#FAFCFA] hover:bg-[#1E3231]"
             >
               Download PDF
             </button>
           )}
-          <span className="font-mono text-xs text-[#3A5A40]/60">TY{fp.tax_year}</span>
+          <span className="font-mono text-xs text-[#114B4C]/60">TY{fp.tax_year}</span>
         </span>
       </div>
       <table className="mt-3 w-full text-sm">
@@ -336,25 +336,25 @@ function FormPreviewTable({
             return (
               <Fragment key={ln.line}>
                 <tr
-                  className={`border-t border-[#A3B18A]/50 ${
-                    cite ? 'cursor-pointer hover:bg-[#DAD7CD]/50' : ''
+                  className={`border-t border-[#A7C4BA]/50 ${
+                    cite ? 'cursor-pointer hover:bg-[#F2F5F3]/50' : ''
                   }`}
                   onClick={() => cite && setOpenLine(isOpen ? null : ln.line)}
                 >
-                  <td className="w-12 py-2 pr-3 align-top font-mono text-[#3A5A40]/80">{ln.line}</td>
-                  <td className="py-2 pr-3 align-top text-[#344E41]/90">
+                  <td className="w-12 py-2 pr-3 align-top font-mono text-[#114B4C]/80">{ln.line}</td>
+                  <td className="py-2 pr-3 align-top text-[#1E3231]/90">
                     {ln.label}
-                    {cite && <span className="ml-2 text-xs text-[#588157]">{isOpen ? '▾ why' : '▸ why'}</span>}
-                    {ln.note && <span className="mt-0.5 block text-xs text-[#3A5A40]/60">{ln.note}</span>}
+                    {cite && <span className="ml-2 text-xs text-[#2E7D6B]">{isOpen ? '▾ why' : '▸ why'}</span>}
+                    {ln.note && <span className="mt-0.5 block text-xs text-[#114B4C]/60">{ln.note}</span>}
                   </td>
                   {ln.text_value !== null ? (
-                    <td className="max-w-[16rem] py-2 text-right align-top text-xs italic text-[#588157]">
+                    <td className="max-w-[16rem] py-2 text-right align-top text-xs italic text-[#2E7D6B]">
                       {ln.text_value}
                     </td>
                   ) : (
                     <td
                       className={`py-2 text-right align-top font-mono ${
-                        ln.value === null ? 'text-[#3A5A40]/60' : 'text-[#3A5A40]'
+                        ln.value === null ? 'text-[#114B4C]/60' : 'text-[#114B4C]'
                       }`}
                     >
                       {ln.value === null
@@ -366,13 +366,13 @@ function FormPreviewTable({
                   )}
                 </tr>
                 {isOpen && cite && (
-                  <tr className="bg-[#DAD7CD]/40">
+                  <tr className="bg-[#F2F5F3]/40">
                     <td colSpan={3} className="px-3 py-3">
-                      <p className="text-xs font-semibold text-[#344E41]">Why this number (line {ln.line})</p>
-                      <p className="mt-1 text-xs font-medium text-[#3A5A40]/90">
+                      <p className="text-xs font-semibold text-[#1E3231]">Why this number (line {ln.line})</p>
+                      <p className="mt-1 text-xs font-medium text-[#114B4C]/90">
                         {cite.source} — {cite.reference}
                       </p>
-                      <p className="mt-1 text-xs leading-relaxed text-[#3A5A40]/80">{cite.text}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-[#114B4C]/80">{cite.text}</p>
                     </td>
                   </tr>
                 )}
@@ -381,8 +381,8 @@ function FormPreviewTable({
           })}
         </tbody>
       </table>
-      {fp.flows_to && <p className="mt-2 text-xs font-medium text-[#588157]">→ flows to {fp.flows_to}</p>}
-      {fp.note && <p className="mt-1 text-xs text-[#3A5A40]/60">{fp.note}</p>}
+      {fp.flows_to && <p className="mt-2 text-xs font-medium text-[#2E7D6B]">→ flows to {fp.flows_to}</p>}
+      {fp.note && <p className="mt-1 text-xs text-[#114B4C]/60">{fp.note}</p>}
     </div>
   );
 }
@@ -434,12 +434,12 @@ function FilingsMasterDetail({
   }, [selected]);
 
   return (
-    <div className="rounded-xl border border-[#A3B18A] bg-[#E4E2D8] p-5">
+    <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">Required Filings</h3>
         <button
           onClick={onDownloadPacket}
-          className="rounded-md bg-[#3A5A40] px-3 py-1.5 text-xs font-semibold text-[#EFEEE7] hover:bg-[#344E41]"
+          className="rounded-md bg-[#114B4C] px-3 py-1.5 text-xs font-semibold text-[#FAFCFA] hover:bg-[#1E3231]"
         >
           Download filing packet (ZIP)
         </button>
@@ -448,7 +448,7 @@ function FilingsMasterDetail({
         <div>
           {groups.map(({ juris, items }) => (
             <div key={juris} className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]/70">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/70">
                 {juris === 'US' ? '🇺🇸 US — IRS / FinCEN' : '🇬🇧 UK — HMRC Self Assessment'}
               </p>
               <ul className="mt-2 space-y-1.5">
@@ -461,13 +461,13 @@ function FilingsMasterDetail({
                         onClick={() => setSelected(f.form)}
                         className={`w-full cursor-pointer rounded-lg border px-3 py-2 text-left text-sm transition-colors duration-150 ${
                           active
-                            ? 'border-[#3A5A40] bg-[#588157]/15 font-semibold'
-                            : 'border-[#A3B18A]/60 bg-[#EFEEE7] hover:border-[#588157]'
+                            ? 'border-[#114B4C] bg-[#2E7D6B]/15 font-semibold'
+                            : 'border-[#A7C4BA]/60 bg-[#FAFCFA] hover:border-[#2E7D6B]'
                         }`}
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span>{f.form}</span>
-                          {!hasPreview && <span className="shrink-0 text-[10px] text-[#3A5A40]/60">no preview</span>}
+                          {!hasPreview && <span className="shrink-0 text-[10px] text-[#114B4C]/60">no preview</span>}
                         </span>
                       </button>
                     </li>
@@ -485,36 +485,36 @@ function FilingsMasterDetail({
                 {pdfSupported && (
                   <button
                     onClick={() => onDownloadForm(selFlag.form)}
-                    className="rounded bg-[#3A5A40] px-2.5 py-1 text-xs font-semibold text-[#EFEEE7] hover:bg-[#344E41]"
+                    className="rounded bg-[#114B4C] px-2.5 py-1 text-xs font-semibold text-[#FAFCFA] hover:bg-[#1E3231]"
                   >
                     Download PDF
                   </button>
                 )}
               </div>
-              <p className="mt-1 text-sm text-[#3A5A40]/80">{selFlag.reason}</p>
+              <p className="mt-1 text-sm text-[#114B4C]/80">{selFlag.reason}</p>
               {selPreview ? (
                 <FormPreviewTable fp={selPreview} citations={citations} />
               ) : (
-                <p className="mt-4 text-sm text-[#3A5A40]/70">
+                <p className="mt-4 text-sm text-[#114B4C]/70">
                   No line preview for this filing — see the reason above for what it requires.
                 </p>
               )}
               {pdfSupported && (
                 <div className="mt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]/70">PDF preview</p>
-                  {pdfLoading && <p className="mt-2 text-sm text-[#3A5A40]/70">Generating PDF…</p>}
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/70">PDF preview</p>
+                  {pdfLoading && <p className="mt-2 text-sm text-[#114B4C]/70">Generating PDF…</p>}
                   {pdfUrl && (
                     <iframe
                       title={`${selFlag.form} filled PDF preview`}
                       src={`${pdfUrl}#view=FitH`}
-                      className="mt-2 h-[560px] w-full rounded-lg border border-[#A3B18A] bg-white"
+                      className="mt-2 h-[560px] w-full rounded-lg border border-[#A7C4BA] bg-white"
                     />
                   )}
                 </div>
               )}
             </>
           ) : (
-            <p className="text-sm text-[#3A5A40]/70">Select a filing to see its detail.</p>
+            <p className="text-sm text-[#114B4C]/70">Select a filing to see its detail.</p>
           )}
         </div>
       </div>
@@ -541,24 +541,24 @@ function RequiredFilings({
     .map((juris) => ({ juris, items: required.filter((f) => f.jurisdiction === juris) }))
     .filter((g) => g.items.length > 0);
   return (
-    <div className="rounded-xl border border-[#A3B18A] bg-[#E4E2D8] p-5">
+    <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">Required Filings</h3>
         {previewsEnabled && onDownloadPacket && (
           <button
             onClick={onDownloadPacket}
-            className="rounded-md bg-[#3A5A40] px-3 py-1.5 text-xs font-semibold text-[#EFEEE7] hover:bg-[#344E41]"
+            className="rounded-md bg-[#114B4C] px-3 py-1.5 text-xs font-semibold text-[#FAFCFA] hover:bg-[#1E3231]"
           >
             Download filing packet (ZIP)
           </button>
         )}
       </div>
       {previewsEnabled && (
-        <p className="mt-1 text-xs text-[#3A5A40]/60">Click a form to see its computed line preview.</p>
+        <p className="mt-1 text-xs text-[#114B4C]/60">Click a form to see its computed line preview.</p>
       )}
       {groups.map(({ juris, items }) => (
         <div key={juris} className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]/60">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/60">
             {juris === 'US' ? '🇺🇸 US — IRS / FinCEN' : '🇬🇧 UK — HMRC Self Assessment'}
           </p>
           <ul className="mt-2 space-y-2">
@@ -567,17 +567,17 @@ function RequiredFilings({
               const isOpen = !!open[f.form];
               const row = (
                 <span className="flex w-full items-start gap-3">
-                  <span className="mt-0.5 shrink-0 rounded bg-[#3A5A40] px-2 py-0.5 text-xs font-bold text-[#EFEEE7]">
+                  <span className="mt-0.5 shrink-0 rounded bg-[#114B4C] px-2 py-0.5 text-xs font-bold text-[#FAFCFA]">
                     FILE
                   </span>
                   <span>
                     <span className="font-medium">{f.form}</span>
                     {fp && (
-                      <span className="ml-2 text-xs font-medium text-[#588157]">
+                      <span className="ml-2 text-xs font-medium text-[#2E7D6B]">
                         {isOpen ? '▾ Hide preview' : '▸ Preview'}
                       </span>
                     )}
-                    <span className="block text-[#3A5A40]/80">{f.reason}</span>
+                    <span className="block text-[#114B4C]/80">{f.reason}</span>
                   </span>
                 </span>
               );
@@ -587,7 +587,7 @@ function RequiredFilings({
                     <button
                       type="button"
                       onClick={() => setOpen({ ...open, [f.form]: !isOpen })}
-                      className="w-full rounded-md text-left hover:bg-[#DAD7CD]/60"
+                      className="w-full rounded-md text-left hover:bg-[#F2F5F3]/60"
                     >
                       {row}
                     </button>
@@ -729,8 +729,8 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
   }
 
   const field =
-    'mt-1 w-full rounded-md border border-[#A3B18A] bg-[#EFEEE7] px-3 py-2 text-sm focus:border-[#588157] focus:outline-none';
-  const label = 'block text-xs font-medium uppercase tracking-wide text-[#3A5A40]/80';
+    'mt-1 w-full rounded-md border border-[#A7C4BA] bg-[#FAFCFA] px-3 py-2 text-sm focus:border-[#2E7D6B] focus:outline-none';
+  const label = 'block text-xs font-medium uppercase tracking-wide text-[#114B4C]/80';
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
@@ -740,18 +740,18 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
             🧾 Provenance
           </Link>
           {tier === 'free' && (
-            <span className="rounded-full border border-[#A3B18A] px-3 py-1 text-xs font-medium text-[#3A5A40]/80">
+            <span className="rounded-full border border-[#A7C4BA] px-3 py-1 text-xs font-medium text-[#114B4C]/80">
               Free estimate
             </span>
           )}
         </h1>
-        <p className="mt-1 text-[#3A5A40]/80">
+        <p className="mt-1 text-[#114B4C]/80">
           FTC vs FEIE for US citizens working in the UK. Python does the math — every number
           traces back to the paragraph that produced it.
         </p>
       </header>
 
-      <form onSubmit={analyze} className="grid grid-cols-2 gap-4 rounded-xl border border-[#A3B18A]/50 bg-[#E4E2D8] p-5 md:grid-cols-3">
+      <form onSubmit={analyze} className="grid grid-cols-2 gap-4 rounded-xl border border-[#A7C4BA]/50 bg-[#E2EBE6] p-5 md:grid-cols-3">
         <div>
           <label className={label}>UK salary (£)</label>
           <input className={field} type="number" min="0" required value={form.uk_salary} onChange={set('uk_salary')} />
@@ -806,10 +806,10 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
               ['claims_uk_remittance_basis', 'Claiming remittance basis'],
             ] as const
           ).map(([key, text]) => (
-            <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-[#344E41]/90">
+            <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-[#1E3231]/90">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-[#A3B18A] bg-[#EFEEE7] accent-[#3A5A40]"
+                className="h-4 w-4 rounded border-[#A7C4BA] bg-[#FAFCFA] accent-[#114B4C]"
                 checked={checks[key]}
                 onChange={(e) => setChecks({ ...checks, [key]: e.target.checked })}
               />
@@ -821,7 +821,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-[#3A5A40] px-4 py-2.5 font-semibold text-[#EFEEE7] hover:bg-[#344E41] disabled:opacity-50"
+            className="w-full rounded-md bg-[#114B4C] px-4 py-2.5 font-semibold text-[#FAFCFA] hover:bg-[#1E3231] disabled:opacity-50"
           >
             {loading ? 'Computing…' : 'Analyze'}
           </button>
@@ -836,14 +836,14 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
 
       {result && (
         <section className="mt-8 space-y-6">
-          <div className="rounded-xl border border-[#3A5A40] bg-[#588157]/15 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#3A5A40]">
+          <div className="rounded-xl border border-[#114B4C] bg-[#2E7D6B]/15 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]">
               Recommendation
             </p>
             <p className="mt-1 text-2xl font-bold">
               Elect the {result.recommended_route} — estimated US tax {usd(result.us_tax_impact)}
             </p>
-            <p className="mt-2 text-sm text-[#344E41]/90">{result.recommendation_reason}</p>
+            <p className="mt-2 text-sm text-[#1E3231]/90">{result.recommendation_reason}</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -884,22 +884,22 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
           )}
 
           {tier === 'free' && (
-            <div className="rounded-xl border border-[#3A5A40]/50 bg-[#588157]/10 p-5">
+            <div className="rounded-xl border border-[#114B4C]/50 bg-[#2E7D6B]/10 p-5">
               <h3 className="text-lg font-semibold">This is the free estimate.</h3>
-              <p className="mt-2 text-sm text-[#344E41]/90">
+              <p className="mt-2 text-sm text-[#1E3231]/90">
                 Filer adds the step-by-step calculation trace, line-by-line previews of every
                 required form, legal citations for each number, and a plain-English explanation.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <a
                   href="/app"
-                  className="rounded-md bg-[#3A5A40] px-4 py-2 text-sm font-semibold text-[#EFEEE7] hover:bg-[#344E41]"
+                  className="rounded-md bg-[#114B4C] px-4 py-2 text-sm font-semibold text-[#FAFCFA] hover:bg-[#1E3231]"
                 >
                   Try the full version
                 </a>
                 <a
                   href="/#pricing"
-                  className="rounded-md border border-[#A3B18A] px-4 py-2 text-sm font-medium text-[#344E41]/90 hover:border-[#588157]"
+                  className="rounded-md border border-[#A7C4BA] px-4 py-2 text-sm font-medium text-[#1E3231]/90 hover:border-[#2E7D6B]"
                 >
                   See pricing
                 </a>
@@ -909,29 +909,29 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
 
           {tier !== 'free' && (
           <>
-          <div className="rounded-xl border border-[#A3B18A] bg-[#E4E2D8] p-5">
+          <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Plain-English explanation</h3>
-              <span className="rounded bg-[#CFCCBE] px-2 py-0.5 font-mono text-xs text-[#3A5A40]/80">
+              <span className="rounded bg-[#D3E0DA] px-2 py-0.5 font-mono text-xs text-[#114B4C]/80">
                 {result.explanation_provider}
               </span>
             </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#344E41]/90">
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#1E3231]/90">
               {result.explanation}
             </p>
           </div>
 
-          <div className="rounded-xl border border-[#A3B18A] bg-[#E4E2D8] p-5">
+          <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
             <h3 className="text-lg font-semibold">Citations</h3>
             <ul className="mt-3 space-y-3">
               {result.citations.map((c) => (
-                <li key={c.key} className="border-l-2 border-[#588157] pl-3 text-sm">
-                  <p className="font-medium text-[#3A5A40]">
+                <li key={c.key} className="border-l-2 border-[#2E7D6B] pl-3 text-sm">
+                  <p className="font-medium text-[#114B4C]">
                     {c.source} — {c.reference}
                   </p>
-                  <p className="mt-1 text-[#3A5A40]/80">{c.text}</p>
+                  <p className="mt-1 text-[#114B4C]/80">{c.text}</p>
                   {c.url && (
-                    <a href={c.url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-[#588157] hover:underline">
+                    <a href={c.url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs text-[#2E7D6B] hover:underline">
                       {c.url}
                     </a>
                   )}
@@ -944,7 +944,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
         </section>
       )}
 
-      <footer className="mt-10 border-t border-[#A3B18A]/50 pt-4 text-xs text-[#3A5A40]/60">
+      <footer className="mt-10 border-t border-[#A7C4BA]/50 pt-4 text-xs text-[#114B4C]/60">
         Demo scope: PAYE-only UK salary, single tax year, fixed GBP/USD 1.27. Not tax advice.
       </footer>
     </main>
