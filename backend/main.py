@@ -3,15 +3,23 @@ import io
 import logging
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Response
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from dotenv import load_dotenv
 
-from llm.client import explain
-from models import AnalyzeResponse, TaxProfile
-from pdf_fill import fill_form, supported_forms
-from tax_engine import GBP_USD_RATE, analyze
+# Load backend/.env before any module reads os.environ at import time
+load_dotenv(Path(__file__).parent / ".env")
+
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+
+from llm.client import explain  # noqa: E402
+from llm.extract import extract_identity  # noqa: E402
+from models import AnalyzeResponse, PersonalInfo, TaxProfile  # noqa: E402
+from pdf_fill import fill_form, supported_forms  # noqa: E402
+from tax_engine import GBP_USD_RATE, analyze  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 
@@ -49,6 +57,12 @@ async def analyze_profile(profile: TaxProfile) -> AnalyzeResponse:
 class PdfRequest(BaseModel):
     profile: TaxProfile
     form: str
+    personal: Optional[PersonalInfo] = None
+
+
+class PacketRequest(BaseModel):
+    profile: TaxProfile
+    personal: Optional[PersonalInfo] = None
 
 
 def _safe_filename(form: str) -> str:
@@ -65,7 +79,7 @@ async def download_pdf(req: PdfRequest) -> Response:
     preview = next((fp for fp in result.form_previews if fp.form == req.form), None)
     if preview is None:
         raise HTTPException(404, f"{req.form} is not part of this profile's filings")
-    pdf = fill_form(preview, req.profile)
+    pdf = fill_form(preview, req.profile, req.personal)
     return Response(
         content=pdf,
         media_type="application/pdf",
@@ -74,9 +88,10 @@ async def download_pdf(req: PdfRequest) -> Response:
 
 
 @app.post("/packet")
-async def download_packet(profile: TaxProfile) -> Response:
+async def download_packet(req: PacketRequest) -> Response:
     """Zip every supported filled form for this profile plus a provenance
     manifest. In-memory only."""
+    profile = req.profile
     result = analyze(profile)
     fillable = [fp for fp in result.form_previews if fp.form in supported_forms()]
     if not fillable:
@@ -85,7 +100,7 @@ async def download_packet(profile: TaxProfile) -> Response:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for fp in fillable:
-            zf.writestr(_safe_filename(fp.form), fill_form(fp, profile))
+            zf.writestr(_safe_filename(fp.form), fill_form(fp, profile, req.personal))
         manifest = "\n".join([
             "Provenance filing packet",
             f"Generated: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
@@ -102,3 +117,22 @@ async def download_packet(profile: TaxProfile) -> Response:
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="provenance-filing-packet.zip"'},
     )
+
+
+@app.post("/extract-identity")
+async def extract_identity_endpoint(file: UploadFile = File(...)) -> dict:
+    """Extract name/address fields from an uploaded ID document image using a
+    vision LLM. The image is processed in memory and sent to the model
+    provider for extraction only — never stored. The user reviews every
+    extracted value before it touches a form (the LLM still never computes
+    a tax number)."""
+    raw = await file.read()
+    if len(raw) > 8_000_000:
+        raise HTTPException(413, "Image too large (8 MB max)")
+    fields = await extract_identity(raw, file.content_type or "image/jpeg")
+    if fields is None:
+        raise HTTPException(
+            503,
+            "No vision model configured — set FIREWORKS_API_KEY in backend/.env to enable extraction.",
+        )
+    return fields

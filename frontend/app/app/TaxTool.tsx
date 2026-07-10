@@ -67,6 +67,44 @@ type AnalyzeResponse = {
   explanation_provider: string;
 };
 
+type DependentInfo = {
+  first_name: string;
+  last_name: string;
+  ssn: string;
+  relationship: string;
+};
+
+type PersonalInfo = {
+  first_name: string;
+  last_name: string;
+  ssn: string;
+  street_address: string;
+  apt_no: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  foreign_country: string;
+  foreign_province: string;
+  foreign_postal_code: string;
+  dependents: DependentInfo[];
+};
+
+const EMPTY_PERSONAL: Omit<PersonalInfo, 'dependents'> = {
+  first_name: '',
+  last_name: '',
+  ssn: '',
+  street_address: '',
+  apt_no: '',
+  city: '',
+  state: '',
+  zip_code: '',
+  foreign_country: '',
+  foreign_province: '',
+  foreign_postal_code: '',
+};
+
+const EMPTY_DEPENDENT: DependentInfo = { first_name: '', last_name: '', ssn: '', relationship: '' };
+
 const usd = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -387,6 +425,159 @@ function FormPreviewTable({
   );
 }
 
+const pField =
+  'mt-1 w-full rounded-md border border-[#A7C4BA] bg-[#FAFCFA] px-3 py-2 text-sm focus:border-[#2E7D6B] focus:outline-none';
+const pLabel = 'block text-xs font-medium uppercase tracking-wide text-[#114B4C]/80';
+
+function PersonalInfoPanel({
+  personal,
+  onFieldChange,
+  dependentsCount,
+  onDependentChange,
+  extractBusy,
+  extractError,
+  onExtract,
+  onApply,
+}: {
+  personal: PersonalInfo;
+  onFieldChange: (key: keyof Omit<PersonalInfo, 'dependents'>, value: string) => void;
+  dependentsCount: number;
+  onDependentChange: (index: number, key: keyof DependentInfo, value: string) => void;
+  extractBusy: boolean;
+  extractError: string;
+  onExtract: (file: File) => void;
+  onApply: () => void;
+}) {
+  const [justApplied, setJustApplied] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => setJustApplied(false), [personal]);
+
+  const handleFiles = (files: FileList | null) => {
+    if (files && files[0]) onExtract(files[0]);
+  };
+
+  const textField = (key: keyof Omit<PersonalInfo, 'dependents'>, title: string, placeholder = '') => (
+    <div>
+      <label className={pLabel}>{title}</label>
+      <input
+        className={pField}
+        value={personal[key]}
+        placeholder={placeholder}
+        onChange={(e) => onFieldChange(key, e.target.value)}
+      />
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h4 className="text-base font-semibold">Personal information</h4>
+        <button
+          onClick={() => {
+            onApply();
+            setJustApplied(true);
+          }}
+          className="rounded bg-[#114B4C] px-2.5 py-1 text-xs font-semibold text-[#FAFCFA] hover:bg-[#1E3231]"
+        >
+          Fill the forms
+        </button>
+      </div>
+      <p className="mt-1 text-sm text-[#114B4C]/80">
+        Names, SSN, and address for the form headers. Optional — forms download with these fields
+        blank if you skip this.
+      </p>
+      {justApplied && (
+        <p className="mt-2 rounded-md border border-[#2E7D6B]/50 bg-[#2E7D6B]/10 px-3 py-2 text-xs text-[#114B4C]">
+          Applied — the PDF previews and downloads now include this information.
+        </p>
+      )}
+
+      <div
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          handleFiles(e.dataTransfer.files);
+        }}
+        onClick={() => fileRef.current?.click()}
+        className="mt-4 cursor-pointer rounded-lg border-2 border-dashed border-[#A7C4BA] bg-[#FAFCFA] px-4 py-6 text-center transition-colors hover:border-[#2E7D6B]"
+      >
+        <p className="text-sm font-medium text-[#1E3231]">
+          {extractBusy ? 'Reading document…' : 'Drop a passport or ID photo here, or click to choose'}
+        </p>
+        <p className="mt-1 text-xs text-[#114B4C]/70">
+          A vision model extracts the printed fields for your review. Processed in memory and sent
+          to the model provider only for extraction — nothing is stored. It never computes a tax
+          number.
+        </p>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+      </div>
+      {extractError && (
+        <p className="mt-2 rounded-md border border-red-300 bg-red-100 px-3 py-2 text-xs text-red-800">
+          {extractError}
+        </p>
+      )}
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        {textField('first_name', 'First name')}
+        {textField('last_name', 'Last name')}
+        {textField('ssn', 'Social security number', '123-45-6789')}
+        {textField('street_address', 'Street address')}
+        {textField('apt_no', 'Apt no. (optional)')}
+        {textField('city', 'City')}
+        {textField('foreign_country', 'Country', 'United Kingdom')}
+        {textField('foreign_province', 'County / province (optional)')}
+        {textField('foreign_postal_code', 'Postcode')}
+      </div>
+
+      {dependentsCount > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/70">
+            Dependents ({Math.min(dependentsCount, 4)})
+          </p>
+          {Array.from({ length: Math.min(dependentsCount, 4) }).map((_, i) => {
+            const dep = personal.dependents[i] ?? EMPTY_DEPENDENT;
+            return (
+              <div key={i} className="mt-3 grid gap-3 rounded-lg border border-[#A7C4BA]/60 bg-[#FAFCFA] p-3 sm:grid-cols-4">
+                {(
+                  [
+                    ['first_name', 'First name'],
+                    ['last_name', 'Last name'],
+                    ['ssn', 'SSN'],
+                    ['relationship', 'Relationship'],
+                  ] as const
+                ).map(([key, title]) => (
+                  <div key={key}>
+                    <label className={pLabel}>{title}</label>
+                    <input
+                      className={pField}
+                      value={dep[key]}
+                      onChange={(e) => onDependentChange(i, key, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          {dependentsCount > 4 && (
+            <p className="mt-2 text-xs text-[#114B4C]/70">
+              Form 1040 lists four dependents on the face of the return; additional dependents
+              attach on a statement.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const PERSONAL_KEY = '__personal__';
+
 function FilingsMasterDetail({
   flags,
   previews,
@@ -394,6 +585,8 @@ function FilingsMasterDetail({
   onDownloadForm,
   onDownloadPacket,
   fetchPdfUrl,
+  personalPanel,
+  version = 0,
 }: {
   flags: FilingFlag[];
   previews: FormPreview[];
@@ -401,6 +594,8 @@ function FilingsMasterDetail({
   onDownloadForm: (form: string) => void;
   onDownloadPacket: () => void;
   fetchPdfUrl: (form: string) => Promise<string | null>;
+  personalPanel?: React.ReactNode;
+  version?: number;
 }) {
   const required = flags.filter((f) => f.required);
   const groups = (['US', 'UK'] as const)
@@ -431,7 +626,7 @@ function FilingsMasterDetail({
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
+  }, [selected, version]);
 
   return (
     <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
@@ -446,6 +641,30 @@ function FilingsMasterDetail({
       </div>
       <div className="mt-4 grid gap-5 lg:grid-cols-[280px_1fr]">
         <div>
+          {personalPanel && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/70">
+                Your details
+              </p>
+              <ul className="mt-2">
+                <li>
+                  <button
+                    onClick={() => setSelected(PERSONAL_KEY)}
+                    className={`w-full cursor-pointer rounded-lg border px-3 py-2 text-left text-sm transition-colors duration-150 ${
+                      selected === PERSONAL_KEY
+                        ? 'border-[#114B4C] bg-[#2E7D6B]/15 font-semibold'
+                        : 'border-[#A7C4BA]/60 bg-[#FAFCFA] hover:border-[#2E7D6B]'
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span>Personal information</span>
+                      <span className="shrink-0 text-[10px] text-[#114B4C]/60">names, SSN, address</span>
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          )}
           {groups.map(({ juris, items }) => (
             <div key={juris} className="mb-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#114B4C]/70">
@@ -478,7 +697,9 @@ function FilingsMasterDetail({
           ))}
         </div>
         <div className="min-w-0">
-          {selFlag ? (
+          {selected === PERSONAL_KEY && personalPanel ? (
+            personalPanel
+          ) : selFlag ? (
             <>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h4 className="text-base font-semibold">{selFlag.form}</h4>
@@ -640,6 +861,65 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
   const [analyzedBody, setAnalyzedBody] = useState<Record<string, unknown> | null>(null);
   const [analysisId, setAnalysisId] = useState(0);
   const pdfCache = useRef<Record<string, string>>({});
+  // Identity block for form headers. `personal` is the live draft; only the
+  // applied snapshot ever reaches a PDF, so half-typed values never leak in.
+  const [personal, setPersonal] = useState<PersonalInfo>({ ...EMPTY_PERSONAL, dependents: [] });
+  const [appliedPersonal, setAppliedPersonal] = useState<PersonalInfo | null>(null);
+  const [pdfVersion, setPdfVersion] = useState(0);
+  const [extractBusy, setExtractBusy] = useState(false);
+  const [extractError, setExtractError] = useState('');
+
+  const depCount = analyzedBody ? Number(analyzedBody.dependents ?? 0) : 0;
+
+  function setPersonalField(key: keyof Omit<PersonalInfo, 'dependents'>, value: string) {
+    setPersonal((p) => ({ ...p, [key]: value }));
+  }
+
+  function setDependentField(index: number, key: keyof DependentInfo, value: string) {
+    setPersonal((p) => {
+      const deps = [...p.dependents];
+      while (deps.length <= index) deps.push({ ...EMPTY_DEPENDENT });
+      deps[index] = { ...deps[index], [key]: value };
+      return { ...p, dependents: deps };
+    });
+  }
+
+  function clearPdfCache() {
+    Object.values(pdfCache.current).forEach((u) => URL.revokeObjectURL(u));
+    pdfCache.current = {};
+  }
+
+  function applyPersonal() {
+    setAppliedPersonal({
+      ...personal,
+      dependents: personal.dependents.slice(0, Math.min(depCount, 4)),
+    });
+    clearPdfCache();
+    setPdfVersion((v) => v + 1);
+  }
+
+  async function extractFromDocument(file: File) {
+    setExtractBusy(true);
+    setExtractError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_URL}/extract-identity`, { method: 'POST', body: fd });
+      if (!res.ok) {
+        const detail = (await res.json().catch(() => null))?.detail;
+        throw new Error(detail || `Extraction failed (${res.status})`);
+      }
+      const fields: Record<string, string> = await res.json();
+      setPersonal((p) => ({
+        ...p,
+        ...Object.fromEntries(Object.entries(fields).filter(([, v]) => v)),
+      }));
+    } catch (err) {
+      setExtractError(err instanceof Error ? err.message : 'Extraction failed');
+    } finally {
+      setExtractBusy(false);
+    }
+  }
 
   async function fetchPdfUrl(formName: string): Promise<string | null> {
     if (pdfCache.current[formName]) return pdfCache.current[formName];
@@ -648,7 +928,11 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
       const res = await fetch(`${API_URL}/pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: analyzedBody, form: formName }),
+        body: JSON.stringify({
+          profile: analyzedBody,
+          form: formName,
+          personal: appliedPersonal ?? undefined,
+        }),
       });
       if (!res.ok) return null;
       const url = URL.createObjectURL(await res.blob());
@@ -853,7 +1137,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
 
           {tier !== 'free' && analyzedBody && (
             <WhatIfPanel
-              key={analysisId}
+              key={`whatif-${analysisId}`}
               baseBody={analyzedBody}
               baseSalary={Number(analyzedBody?.uk_salary ?? form.uk_salary)}
               baseRoute={result.recommended_route}
@@ -869,17 +1153,45 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
             />
           ) : (
             <FilingsMasterDetail
-              key={analysisId}
+              key={`filings-${analysisId}`}
               flags={result.filing_flags}
               previews={result.form_previews}
               citations={result.citations}
               onDownloadForm={(f) =>
-                downloadBlob('/pdf', { profile: analyzedBody ?? buildBody(), form: f }, pdfFilename(f))
+                downloadBlob(
+                  '/pdf',
+                  {
+                    profile: analyzedBody ?? buildBody(),
+                    form: f,
+                    personal: appliedPersonal ?? undefined,
+                  },
+                  pdfFilename(f)
+                )
               }
               onDownloadPacket={() =>
-                downloadBlob('/packet', analyzedBody ?? buildBody(), 'provenance-filing-packet.zip')
+                downloadBlob(
+                  '/packet',
+                  {
+                    profile: analyzedBody ?? buildBody(),
+                    personal: appliedPersonal ?? undefined,
+                  },
+                  'provenance-filing-packet.zip'
+                )
               }
               fetchPdfUrl={fetchPdfUrl}
+              version={pdfVersion}
+              personalPanel={
+                <PersonalInfoPanel
+                  personal={personal}
+                  onFieldChange={setPersonalField}
+                  dependentsCount={depCount}
+                  onDependentChange={setDependentField}
+                  extractBusy={extractBusy}
+                  extractError={extractError}
+                  onExtract={extractFromDocument}
+                  onApply={applyPersonal}
+                />
+              }
             />
           )}
 
