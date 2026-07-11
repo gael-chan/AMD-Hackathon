@@ -1,9 +1,12 @@
 <div align="center">
 
-# 🧾 Provenance
+# 🧾 Longhand
 
-### AI reads the tax law. Python does the math. Every number traces back to the exact paragraph that produced it.
+### *The short way to file your tax abroad.*
 
+**AI reads the tax law. Python does the math. Every number traces back to the exact paragraph that produced it.**
+
+[![Tests](https://github.com/gael-chan/AMD-Hackathon/actions/workflows/tests.yml/badge.svg)](https://github.com/gael-chan/AMD-Hackathon/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat&logo=nextdotjs&logoColor=white)](https://nextjs.org)
@@ -13,7 +16,7 @@
 
 **Built for AMD Developer Hackathon: ACT II · Unicorn Track · July 2026**
 
-[Demo](#quick-start) · [Architecture](#architecture) · [Data Model](docs/Erd.png) · [Full ERD Pack](docs/provenance_erd_v3_professional_pack.pdf)
+[Quick Start](#quick-start) · [Screenshots](#what-it-looks-like) · [Forms Coverage](#forms-coverage) · [Architecture](#architecture) · [Data Model](docs/Erd.png)
 
 </div>
 
@@ -31,7 +34,7 @@ Today's options:
 | Human accountant | $500–1,500+/yr | Black box — "trust me" |
 | Generic AI chatbot | Free | Hallucinates numbers, no audit trail |
 
-**Nobody can answer "prove this number is right" with anything better than reputation. Provenance fixes that.**
+**Nobody can answer "prove this number is right" with anything better than reputation. Longhand fixes that.**
 
 ---
 
@@ -39,7 +42,7 @@ Today's options:
 
 A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 
-| You provide | Provenance returns |
+| You provide | Longhand returns |
 |---|---|
 | UK salary (£) | FEIE vs FTC comparison — exact figures |
 | UK tax paid (£) | Recommended route + estimated US tax impact |
@@ -47,10 +50,13 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 | Days abroad | Deterministic line-by-line form previews |
 | Dependents · foreign accounts | Cited IRS / HMRC / US–UK treaty paragraphs |
 | ISA / PFIC holdings · pension | Full calculation trace + plain-English AI explanation |
+| ID photo (optional) | **Filled official IRS PDFs** — per-form download or ZIP packet with manifest |
+
+Plus a **what-if salary slider** (watch the FTC/FEIE recommendation flip in real time) and **ID-photo extraction** — drop a passport photo and a vision model fills the personal-information header of every PDF (image processed in memory, never stored; the LLM still never computes a tax number).
 
 ### What makes this different
 
-| Other tools | Provenance |
+| Other tools | Longhand |
 |---|---|
 | LLM calculates the numbers | **Python calculates. LLM only explains.** |
 | "Here's your answer" | Every number traces to the exact law paragraph |
@@ -58,6 +64,22 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 | Generic advice | Flags the exact forms you need to file |
 
 > **Core architectural law:** The LLM never touches numbers. Deterministic Python functions run all tax math. The LLM receives pre-computed results + pre-fetched citations and returns plain English only. Break this rule and the audit claim dies.
+
+---
+
+## What It Looks Like
+
+**The verdict** — FEIE vs FTC side by side, each with its expandable calculation trace, plus the what-if salary slider:
+
+![FTC vs FEIE verdict with what-if slider](docs/screenshot-verdict.png)
+
+**Every number defends itself** — expand any form line and read the exact paragraph of law that produced it:
+
+![Form 1040 line 1h with its expanded legal citation](docs/screenshot-citation.png)
+
+**The landing page** — one life, two tax systems, zero guesswork:
+
+![Longhand landing page](docs/screenshot-landing.png)
 
 ---
 
@@ -101,7 +123,7 @@ Every form gets a **flag** (required or not, with a cited reason). Most also get
 
 ## Architecture
 
-![Provenance System Architecture](docs/Architecture.png)
+![Longhand System Architecture](docs/Architecture.png)
 
 The system has three strictly separated layers:
 
@@ -115,7 +137,7 @@ The system has three strictly separated layers:
 
 ## Data Model
 
-![Provenance ERD v4](docs/Erd.png)
+![Longhand ERD v4](docs/Erd.png)
 
 Four domain bands: **Knowledge Base** · **Deterministic Engine** · **Users & Filings** · **Operations (Roadmap)**
 
@@ -125,7 +147,7 @@ tax_profiles → filings → code_versions → filing_citations → tax_rules �
 ```
 Every output number traces through this chain to the source paragraph.
 
-→ [Full modular ERD + relationship catalogue](docs/provenance_erd_v3_professional_pack.pdf)
+→ [Full modular ERD + relationship catalogue](docs/longhand_erd_v3_professional_pack.pdf)
 
 ---
 
@@ -183,7 +205,7 @@ Every output number traces through this chain to the source paragraph.
 ## Quick Start
 
 ```bash
-git clone https://github.com/V-Vekaria/AMD-Hackathon
+git clone https://github.com/gael-chan/AMD-Hackathon
 cd AMD-Hackathon
 cp .env.example .env        # add your AMD + Fireworks keys (optional — degrades gracefully)
 docker compose up --build
@@ -202,7 +224,7 @@ uvicorn main:app --reload
 cd frontend && npm install && npm run dev
 ```
 
-**Run the engine test suite** (109 tests: hand-computed bracket goldens, stacking-rule and §904 scenarios, threshold boundary pins, and cross-form consistency invariants swept over a profile grid):
+**Run the test suite** (121 tests, also run on every push by [CI](.github/workflows/tests.yml): hand-computed bracket goldens, stacking-rule and §904 scenarios, threshold boundary pins, cross-form consistency invariants swept over a profile grid, and PDF fill round-trips):
 ```bash
 cd backend && pytest tests -q
 ```
@@ -226,12 +248,13 @@ curl -X POST http://localhost:8000/analyze \
 ## Repo Structure
 
 ```
-provenance/
+longhand/
 ├── backend/
-│   ├── main.py            # FastAPI — /analyze endpoint
+│   ├── main.py            # FastAPI — /analyze, /pdf, /packet, /extract-identity
 │   ├── models.py          # Pydantic schemas
 │   ├── tax_engine.py      # deterministic FEIE/FTC calculator + filing flags
 │   ├── snippets.py        # curated IRS/HMRC/treaty citations
+│   ├── pdf_fill.py        # fills official IRS AcroForm templates (in memory)
 │   ├── forms/             # deterministic line-by-line form previews
 │   │   ├── form2555.py    #   FEIE election      → Schedule 1
 │   │   ├── form1116.py    #   Foreign Tax Credit → Schedule 3
@@ -239,16 +262,23 @@ provenance/
 │   │   ├── form8833.py    #   treaty disclosure (Art. 18 pension)
 │   │   ├── form8938.py    #   FATCA
 │   │   ├── schedule1.py … schedule3.py, schedule1a.py
-│   │   └── sa100.py, sa106.py, sa109.py   # UK Self Assessment
+│   │   ├── sa100.py, sa106.py, sa109.py   # UK Self Assessment
+│   │   └── templates/     #   vendored blank IRS PDFs (public domain)
 │   ├── llm/
-│   │   └── client.py      # AMD MI300X + Fireworks fallback
-│   ├── tests/             # pytest: golden math, boundaries, cross-form invariants
+│   │   ├── client.py      # explanation: AMD MI300X + Fireworks fallback
+│   │   └── extract.py     # ID-photo field extraction (vision model)
+│   ├── tests/             # 121 pytest cases: goldens, boundaries, invariants, PDF round-trips
 │   └── requirements.txt
-├── frontend/              # Next.js — form + result card + trace viewer
+├── frontend/
+│   └── app/
+│       ├── page.tsx       # landing page (+ scroll-in entry splash)
+│       ├── app/           # Filer tier — wizard, verdict, filings, PDF preview
+│       └── app/free/      # Free tier — verdict + filing flags only
 ├── docs/
 │   ├── Architecture.png   # system architecture diagram
 │   ├── Erd.png            # data model (single image)
-│   └── provenance_erd_v3_professional_pack.pdf
+│   └── longhand_erd_v3_professional_pack.pdf
+├── .github/workflows/tests.yml   # CI — backend suite on every push
 ├── docker-compose.yml
 ├── Dockerfile.backend
 ├── Dockerfile.frontend
@@ -265,7 +295,7 @@ provenance/
 # deterministic trace summary instead of an LLM explanation
 AMD_API_KEY=your_amd_key_here
 AMD_MODEL_ENDPOINT=https://your-amd-endpoint/v1/chat/completions   # OpenAI-compatible
-FIREWORKS_API_KEY=your_fireworks_key_here
+FIREWORKS_API_KEY=your_fireworks_key_here   # also powers ID-photo extraction
 GBP_USD_RATE=1.27
 ```
 
@@ -293,9 +323,10 @@ UK is the wedge market. The policy-to-code architecture extends to any dual-fili
 - [ ] Form 8621 §1291 excess-distribution computation (needs distribution history intake)
 - [x] Fill the official PDFs — demo chain done (1040, 1116, 2555, Schedules 1 & 3; per-form download + ZIP packet with provenance manifest)
 - [ ] PDF filling for the disclosure forms (8621/8833/8938) and UK SA pages (HMRC PDFs are print-only — needs coordinate overlay)
+- [x] What-if simulator (live salary slider — watch the FTC/FEIE recommendation flip)
+- [x] ID-photo extraction fills the PDF personal-information headers (vision LLM, in-memory only)
 - [ ] Brokerage CSV import
 - [ ] Multi-year carryforward tracking
-- [ ] What-if simulator (FTC vs FEIE with salary scenarios)
 - [ ] Jurisdiction #2 via swappable module pack — same engine, new rules file
 - [ ] E-file integrations (IRS MeF, HMRC-recognised software)
 

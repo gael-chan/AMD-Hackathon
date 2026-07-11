@@ -1,7 +1,13 @@
 'use client';
 
+import { Lexend } from 'next/font/google';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Fragment, useEffect, useRef, useState } from 'react';
+
+// Same wordmark font as the landing page (app/page.tsx), instantiated here
+// since this is a separate client-component tree.
+const lexend = Lexend({ subsets: ['latin'], variable: '--font-forest' });
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -1017,11 +1023,11 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
   const label = 'block text-xs font-medium uppercase tracking-wide text-[#114B4C]/80';
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
+    <main className={`${lexend.variable} mx-auto max-w-4xl px-4 py-10`}>
       <header className="mb-8">
         <h1 className="flex items-center gap-3 text-3xl font-bold">
           <Link href="/" className="transition-opacity hover:opacity-75">
-            🧾 Provenance
+            <Image src="/longhand-logo-2.png" alt="Longhand" width={150} height={29} priority />
           </Link>
           {tier === 'free' && (
             <span className="rounded-full border border-[#A7C4BA] px-3 py-1 text-xs font-medium text-[#114B4C]/80">
@@ -1175,7 +1181,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
                     profile: analyzedBody ?? buildBody(),
                     personal: appliedPersonal ?? undefined,
                   },
-                  'provenance-filing-packet.zip'
+                  'longhand-filing-packet.zip'
                 )
               }
               fetchPdfUrl={fetchPdfUrl}
