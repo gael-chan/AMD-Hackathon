@@ -156,7 +156,7 @@ export default function ForestLanding() {
       {/* Problem */}
       <section className="border-t border-[#A7C4BA]/50 bg-[#D3E0DA]/50">
         <div className="mx-auto max-w-6xl px-4 py-20">
-          <div className="max-w-3xl">
+          <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-2xl font-semibold tracking-tight [font-family:var(--font-forest)]">
               Filing in both countries is a $1,500 problem.
             </h2>
