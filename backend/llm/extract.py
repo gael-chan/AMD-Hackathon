@@ -64,10 +64,10 @@ async def extract_identity(image_bytes: bytes, mime: str) -> Optional[dict]:
     api_key = os.getenv("FIREWORKS_API_KEY", "")
     if not api_key:
         return None
-    model = os.getenv(
-        "FIREWORKS_VISION_MODEL",
-        os.getenv("FIREWORKS_MODEL", "accounts/fireworks/models/kimi-k2p6"),
-    )
+    # Deliberately NOT falling back to FIREWORKS_MODEL: that variable selects
+    # the text explanation model (gpt-oss), which cannot accept images —
+    # inheriting it silently breaks extraction in deployments that set it.
+    model = os.getenv("FIREWORKS_VISION_MODEL", "accounts/fireworks/models/kimi-k2p6")
     small_bytes, small_mime = _shrink(image_bytes, mime)
     data_url = f"data:{small_mime};base64,{base64.b64encode(small_bytes).decode()}"
     async with httpx.AsyncClient(timeout=45) as client:
