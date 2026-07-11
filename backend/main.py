@@ -58,16 +58,23 @@ class AskRequest(BaseModel):
     question: str
     explanation: str
     history: list[dict] = []
+    citations: list[dict] = []
+    filing_flags: list[dict] = []
+    routes: Optional[dict] = None
 
 
 @app.post("/ask")
 async def ask(req: AskRequest) -> dict:
-    """Grounded Q&A about an already-generated explanation. The LLM may only
-    restate what the explanation says — it never calculates. The 3-question
-    quota is enforced client-side (demo scope)."""
+    """Grounded Q&A about an already-generated result. The LLM may only draw on
+    the explanation, the engine's citations, filing flags, and route summaries —
+    it never calculates. The 3-question quota is enforced client-side (demo
+    scope)."""
     if len(req.question) > 500:
         raise HTTPException(413, "Question too long (500 characters max)")
-    answer, provider = await answer_question(req.question, req.explanation, req.history)
+    answer, provider = await answer_question(
+        req.question, req.explanation, req.history,
+        citations=req.citations, filing_flags=req.filing_flags, routes=req.routes,
+    )
     return {"answer": answer, "provider": provider}
 
 

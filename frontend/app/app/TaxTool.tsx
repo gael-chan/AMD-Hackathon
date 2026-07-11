@@ -141,7 +141,8 @@ const renderEmphasis = (text: string) =>
 
 const ASK_LIMIT = 3;
 
-function AskPanel({ explanation }: { explanation: string }) {
+function AskPanel({ result }: { result: AnalyzeResponse }) {
+  const explanation = result.explanation;
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -166,7 +167,18 @@ function AskPanel({ explanation }: { explanation: string }) {
       const res = await fetch(`${API_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, explanation, history }),
+        body: JSON.stringify({
+          question,
+          explanation,
+          history,
+          citations: result.citations.map(({ source, reference, text }) => ({ source, reference, text })),
+          filing_flags: result.filing_flags.map(({ form, required, reason }) => ({ form, required, reason })),
+          routes: {
+            recommendation: result.recommendation_reason,
+            FEIE: result.feie.detail,
+            FTC: result.ftc.detail,
+          },
+        }),
       });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
@@ -1407,7 +1419,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
             </p>
           </div>
 
-          <AskPanel key={`ask-${analysisId}`} explanation={result.explanation} />
+          <AskPanel key={`ask-${analysisId}`} result={result} />
 
           <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
             <h3 className="text-lg font-semibold">Citations</h3>
