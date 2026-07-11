@@ -87,31 +87,6 @@ export default function ForestLanding() {
         </div>
       </section>
 
-      {/* Problem */}
-      <section className="border-t border-[#A7C4BA]/50 bg-[#D3E0DA]/50">
-        <div className="mx-auto max-w-6xl px-4 py-20">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold tracking-tight [font-family:var(--font-forest)]">
-              Filing in both countries is a $1,500 problem.
-            </h2>
-            <ul className="mt-6 space-y-5 text-[#1E3231]">
-              <li className="flex justify-between gap-6 border-b border-[#A7C4BA]/60 pb-5">
-                <span>Consumer tax software refuses complex expat cases outright.</span>
-                <span className="shrink-0 font-mono text-[#114B4C]/70">$115+/yr</span>
-              </li>
-              <li className="flex justify-between gap-6 border-b border-[#A7C4BA]/60 pb-5">
-                <span>A specialist accountant works, but the answer is a black box.</span>
-                <span className="shrink-0 font-mono text-[#114B4C]/70">$500 to $1,500/yr</span>
-              </li>
-              <li className="flex justify-between gap-6">
-                <span>A generic chatbot is free, confident, and wrong where it counts.</span>
-                <span className="shrink-0 font-mono text-[#114B4C]/70">$0</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
       {/* How it works */}
       <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-20">
         <h2 className="text-3xl font-semibold tracking-tight [font-family:var(--font-forest)] md:text-4xl">
@@ -178,8 +153,33 @@ export default function ForestLanding() {
         </p>
       </section>
 
+      {/* Problem */}
+      <section className="border-t border-[#A7C4BA]/50 bg-[#D3E0DA]/50">
+        <div className="mx-auto max-w-6xl px-4 py-20">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-semibold tracking-tight [font-family:var(--font-forest)]">
+              Filing in both countries is a $1,500 problem.
+            </h2>
+            <ul className="mt-6 space-y-5 text-[#1E3231]">
+              <li className="flex justify-between gap-6 border-b border-[#A7C4BA]/60 pb-5">
+                <span>Consumer tax software refuses complex expat cases outright.</span>
+                <span className="shrink-0 font-mono text-[#114B4C]/70">$115+/yr</span>
+              </li>
+              <li className="flex justify-between gap-6 border-b border-[#A7C4BA]/60 pb-5">
+                <span>A specialist accountant works, but the answer is a black box.</span>
+                <span className="shrink-0 font-mono text-[#114B4C]/70">$500 to $1,500/yr</span>
+              </li>
+              <li className="flex justify-between gap-6">
+                <span>A generic chatbot is free, confident, and wrong where it counts.</span>
+                <span className="shrink-0 font-mono text-[#114B4C]/70">$0</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
-      <section id="pricing" className="border-t border-[#A7C4BA]/50 bg-[#D3E0DA]/50">
+      <section id="pricing" className="border-b border-t border-[#A7C4BA]/50">
         <div className="mx-auto max-w-6xl px-4 py-20">
           <h2 className="text-3xl font-semibold tracking-tight [font-family:var(--font-forest)] md:text-4xl">
             Priced against the black box.
