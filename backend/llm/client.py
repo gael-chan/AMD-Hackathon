@@ -44,6 +44,59 @@ SYSTEM_PROMPT = (
 )
 
 
+ASK_SYSTEM_PROMPT = (
+    "You are the Q&A layer of Longhand, an auditable US expat tax assistant. "
+    "The user has just read a plain-English explanation of their pre-computed tax "
+    "result and is asking a follow-up question about it. "
+    "STRICT RULES: Never perform arithmetic. Never introduce numbers, law "
+    "references, or facts that are not in the provided explanation. If the "
+    "question cannot be answered from the explanation, say so plainly and point "
+    "out what the explanation does cover. Never give personalised tax advice "
+    "beyond restating what the result says. "
+    "VOICE: everyday words, short sentences, 2-4 of them, like a friendly adviser. "
+    "Translate any jargon in a phrase. You may bold key dollar figures with "
+    "**double asterisks**; no other markdown."
+)
+
+
+async def _chat(url: str, api_key: str, model: str, messages: list) -> str:
+    async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+        resp = await client.post(
+            url,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model, "messages": messages, "max_tokens": 2000, "temperature": 0.3},
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+
+
+async def answer_question(question: str, explanation: str, history: list) -> tuple[str, str]:
+    """Answer a follow-up question grounded ONLY in the already-generated
+    explanation. Returns (answer, provider). Never raises."""
+    messages = [
+        {"role": "system", "content": ASK_SYSTEM_PROMPT},
+        {"role": "user", "content": "Here is the explanation of my result:\n\n" + explanation},
+        {"role": "assistant", "content": "Understood — ask me anything about this result."},
+        *[{"role": m["role"], "content": m["content"]} for m in history[-6:]],
+        {"role": "user", "content": question},
+    ]
+    if AMD_API_KEY and AMD_MODEL_ENDPOINT:
+        try:
+            return await _chat(AMD_MODEL_ENDPOINT, AMD_API_KEY, AMD_MODEL, messages), "amd"
+        except Exception as exc:
+            logger.warning("AMD Q&A call failed, falling back to Fireworks: %s", exc)
+    if FIREWORKS_API_KEY:
+        try:
+            return await _chat(FIREWORKS_ENDPOINT, FIREWORKS_API_KEY, FIREWORKS_MODEL, messages), "fireworks"
+        except Exception as exc:
+            logger.warning("Fireworks Q&A call failed: %s", exc)
+    return (
+        "Q&A is unavailable — no LLM API key is configured. The explanation above "
+        "and the calculation traces contain everything the engine computed.",
+        "deterministic-fallback",
+    )
+
+
 def _build_user_prompt(result: dict) -> str:
     lines = [
         "Explain this pre-computed result to the taxpayer.",

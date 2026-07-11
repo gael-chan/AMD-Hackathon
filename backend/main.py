@@ -15,7 +15,7 @@ from fastapi import FastAPI, File, HTTPException, Response, UploadFile  # noqa: 
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
-from llm.client import explain  # noqa: E402
+from llm.client import answer_question, explain  # noqa: E402
 from llm.extract import extract_identity  # noqa: E402
 from models import AnalyzeResponse, PersonalInfo, TaxProfile  # noqa: E402
 from pdf_fill import fill_form, supported_forms  # noqa: E402
@@ -52,6 +52,23 @@ async def analyze_profile(profile: TaxProfile) -> AnalyzeResponse:
     result.explanation = explanation
     result.explanation_provider = provider
     return result
+
+
+class AskRequest(BaseModel):
+    question: str
+    explanation: str
+    history: list[dict] = []
+
+
+@app.post("/ask")
+async def ask(req: AskRequest) -> dict:
+    """Grounded Q&A about an already-generated explanation. The LLM may only
+    restate what the explanation says — it never calculates. The 3-question
+    quota is enforced client-side (demo scope)."""
+    if len(req.question) > 500:
+        raise HTTPException(413, "Question too long (500 characters max)")
+    answer, provider = await answer_question(req.question, req.explanation, req.history)
+    return {"answer": answer, "provider": provider}
 
 
 class PdfRequest(BaseModel):

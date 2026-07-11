@@ -139,6 +139,115 @@ const renderEmphasis = (text: string) =>
     )
   );
 
+const ASK_LIMIT = 3;
+
+function AskPanel({ explanation }: { explanation: string }) {
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const asked = messages.filter((m) => m.role === 'user').length;
+  const quotaReached = asked >= ASK_LIMIT;
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [messages, loading]);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const question = input.trim();
+    if (!question || quotaReached || loading) return;
+    const history = messages;
+    setMessages([...history, { role: 'user', content: question }]);
+    setInput('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, explanation, history }),
+      });
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data = await res.json();
+      setMessages((m) => [...m, { role: 'assistant', content: data.answer }]);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { role: 'assistant', content: 'Sorry — I could not reach the Q&A service. Try again in a moment.' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-semibold">Ask about your result</h3>
+        <span className="rounded bg-[#D3E0DA] px-2 py-0.5 font-mono text-xs text-[#114B4C]/80">
+          {Math.max(ASK_LIMIT - asked, 0)} of {ASK_LIMIT} questions left
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-[#114B4C]/60">
+        Answers come only from the explanation above — nothing new is calculated.
+      </p>
+
+      <div
+        ref={scrollRef}
+        className="mt-3 h-56 overflow-y-auto rounded-lg border border-[#A7C4BA]/60 bg-[#FAFCFA] p-3"
+      >
+        {messages.length === 0 && !loading && (
+          <p className="text-sm text-[#114B4C]/50">
+            e.g. &ldquo;What does carried forward mean?&rdquo; or &ldquo;Why is FTC better for me?&rdquo;
+          </p>
+        )}
+        <div className="space-y-3">
+          {messages.map((m, i) =>
+            m.role === 'user' ? (
+              <div key={i} className="flex justify-end">
+                <p className="max-w-[85%] rounded-lg bg-[#114B4C] px-3 py-2 text-sm text-[#FAFCFA]">
+                  {m.content}
+                </p>
+              </div>
+            ) : (
+              <div key={i} className="flex justify-start">
+                <p className="max-w-[85%] whitespace-pre-wrap rounded-lg bg-[#E2EBE6] px-3 py-2 text-sm leading-relaxed text-[#1E3231]">
+                  {renderEmphasis(m.content)}
+                </p>
+              </div>
+            )
+          )}
+          {loading && <p className="text-sm text-[#114B4C]/50">Thinking…</p>}
+        </div>
+      </div>
+
+      {quotaReached ? (
+        <p className="mt-3 rounded-lg border border-[#A7C4BA] bg-[#D3E0DA]/60 px-3 py-2 text-center text-sm font-medium text-[#114B4C]/80">
+          Quota limited for free trial
+        </p>
+      ) : (
+        <form onSubmit={send} className="mt-3 flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            maxLength={500}
+            placeholder="Ask a question about this result…"
+            className="w-full rounded-md border border-[#A7C4BA] bg-[#FAFCFA] px-3 py-2 text-sm outline-none focus:border-[#2E7D6B]"
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="shrink-0 rounded-md bg-[#114B4C] px-4 py-2 text-sm font-semibold text-[#FAFCFA] hover:bg-[#1E3231] disabled:opacity-50"
+          >
+            Ask
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function TraceViewer({ trace, citations }: { trace: TraceStep[]; citations: Citation[] }) {
   return (
     <ol className="mt-3 space-y-2">
@@ -1297,6 +1406,8 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
               {renderEmphasis(result.explanation)}
             </p>
           </div>
+
+          <AskPanel key={`ask-${analysisId}`} explanation={result.explanation} />
 
           <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
             <h3 className="text-lg font-semibold">Citations</h3>
