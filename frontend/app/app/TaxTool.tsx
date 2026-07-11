@@ -894,10 +894,10 @@ function RequiredFilings({
 
 export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' }) {
   const [form, setForm] = useState({
-    uk_salary: '85000',
-    uk_tax_paid: '24000',
+    uk_salary: '',
+    uk_tax_paid: '',
     filing_status: 'single',
-    days_abroad: '340',
+    days_abroad: '',
     dependents: '0',
     foreign_account_balance: '',
     pfic_holdings_value: '',
@@ -1005,10 +1005,11 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
 
   function buildBody(): Record<string, unknown> {
     const body: Record<string, unknown> = {
-      uk_salary: Number(form.uk_salary),
-      uk_tax_paid: Number(form.uk_tax_paid),
+      // empty input falls back to the greyed placeholder default
+      uk_salary: Number(form.uk_salary || 200000),
+      uk_tax_paid: Number(form.uk_tax_paid || 76000),
       filing_status: form.filing_status,
-      days_abroad: Number(form.days_abroad),
+      days_abroad: Number(form.days_abroad || 340),
       dependents: Number(form.dependents),
       uk_tax_residence: form.uk_tax_residence,
       ...checks,
@@ -1095,11 +1096,18 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
       <form onSubmit={analyze} className="grid grid-cols-2 gap-4 rounded-xl border border-[#A7C4BA]/50 bg-[#E2EBE6] p-5 md:grid-cols-3">
         <div>
           <label className={label}>UK salary (£)</label>
-          <input className={field} type="number" min="0" required value={form.uk_salary} onChange={set('uk_salary')} />
+          <input
+            className={field}
+            type="number"
+            min="0"
+            placeholder="200000"
+            value={form.uk_salary}
+            onChange={set('uk_salary')}
+          />
         </div>
         <div>
           <label className={label}>UK tax paid (£)</label>
-          <input className={field} type="number" min="0" required value={form.uk_tax_paid} onChange={set('uk_tax_paid')} />
+          <input className={field} type="number" min="0" placeholder="76000" value={form.uk_tax_paid} onChange={set('uk_tax_paid')} />
         </div>
         <div>
           <label className={label}>Filing status</label>
@@ -1112,7 +1120,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
         </div>
         <div>
           <label className={label}>Days abroad</label>
-          <input className={field} type="number" min="0" max="366" required value={form.days_abroad} onChange={set('days_abroad')} />
+          <input className={field} type="number" min="0" max="366" placeholder="340" value={form.days_abroad} onChange={set('days_abroad')} />
         </div>
         <div>
           <label className={label}>Dependents</label>
@@ -1196,7 +1204,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
             <WhatIfPanel
               key={`whatif-${analysisId}`}
               baseBody={analyzedBody}
-              baseSalary={Number(analyzedBody?.uk_salary ?? form.uk_salary)}
+              baseSalary={Number(analyzedBody?.uk_salary ?? (form.uk_salary || 200000))}
               baseRoute={result.recommended_route}
               baseImpact={result.us_tax_impact}
             />
