@@ -1007,7 +1007,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
     const body: Record<string, unknown> = {
       // empty input falls back to the greyed placeholder default
       uk_salary: Number(form.uk_salary || 200000),
-      uk_tax_paid: Number(form.uk_tax_paid || 76000),
+      uk_tax_paid: Number(form.uk_tax_paid || 60000),
       filing_status: form.filing_status,
       days_abroad: Number(form.days_abroad || 340),
       dependents: Number(form.dependents),
@@ -1107,7 +1107,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
         </div>
         <div>
           <label className={label}>UK tax paid (£)</label>
-          <input className={field} type="number" min="0" placeholder="76000" value={form.uk_tax_paid} onChange={set('uk_tax_paid')} />
+          <input className={field} type="number" min="0" placeholder="60000" value={form.uk_tax_paid} onChange={set('uk_tax_paid')} />
         </div>
         <div>
           <label className={label}>Filing status</label>
