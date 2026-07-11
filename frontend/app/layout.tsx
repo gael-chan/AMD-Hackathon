@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Provenance — Auditable Expat Tax Assistant',
+  title: 'Longhand — Auditable Expat Tax Assistant',
   description:
     'FTC vs FEIE for US citizens working in the UK. Python does the math; every number traces to the paragraph that produced it.',
 };

@@ -13,7 +13,7 @@ import os
 
 import httpx
 
-logger = logging.getLogger("provenance.llm")
+logger = logging.getLogger("longhand.llm")
 
 AMD_API_KEY = os.getenv("AMD_API_KEY", "")
 AMD_MODEL_ENDPOINT = os.getenv("AMD_MODEL_ENDPOINT", "")  # OpenAI-compatible /v1/chat/completions URL
@@ -26,7 +26,7 @@ FIREWORKS_MODEL = os.getenv("FIREWORKS_MODEL", "accounts/fireworks/models/gpt-os
 REQUEST_TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
 
 SYSTEM_PROMPT = (
-    "You are the explanation layer of Provenance, an auditable US expat tax assistant. "
+    "You are the explanation layer of Longhand, an auditable US expat tax assistant. "
     "You will receive pre-computed tax results and pre-fetched legal citations. "
     "STRICT RULES: Never perform arithmetic. Never introduce numbers that are not in the "
     "provided results. Never cite laws or figures beyond the provided citations. "
