@@ -126,6 +126,19 @@ const SUPPORTED_PDFS = new Set([
 const pdfFilename = (form: string) =>
   form.toLowerCase().replace(' (form 1040)', '-1040').replace(/ /g, '-') + '.pdf';
 
+// The explanation LLM may bold key figures with **double asterisks** (the only
+// markdown it is allowed). Render those as real emphasis instead of literal stars.
+const renderEmphasis = (text: string) =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') ? (
+      <strong key={i} className="font-semibold text-[#114B4C]">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    )
+  );
+
 function TraceViewer({ trace, citations }: { trace: TraceStep[]; citations: Citation[] }) {
   return (
     <ol className="mt-3 space-y-2">
@@ -604,8 +617,17 @@ function FilingsMasterDetail({
   version?: number;
 }) {
   const required = flags.filter((f) => f.required);
+  // US: required forms only. UK: always list all SA forms — the not-required
+  // ones render greyed out so the "why not" reasoning stays visible.
   const groups = (['US', 'UK'] as const)
-    .map((juris) => ({ juris, items: required.filter((f) => f.jurisdiction === juris) }))
+    .map((juris) => {
+      const all = flags.filter((f) => f.jurisdiction === juris);
+      const items =
+        juris === 'UK'
+          ? [...all.filter((f) => f.required), ...all.filter((f) => !f.required)]
+          : all.filter((f) => f.required);
+      return { juris, items };
+    })
     .filter((g) => g.items.length > 0);
   const firstPreviewable =
     required.find((f) => previews.some((p) => p.form === f.form))?.form ?? required[0]?.form ?? null;
@@ -613,9 +635,9 @@ function FilingsMasterDetail({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  const selFlag = required.find((f) => f.form === selected);
-  const selPreview = previews.find((p) => p.form === selected);
-  const pdfSupported = !!selected && SUPPORTED_PDFS.has(selected);
+  const selFlag = flags.find((f) => f.form === selected);
+  const pdfSupported = !!selected && !!selFlag?.required && SUPPORTED_PDFS.has(selected);
+  const selPreview = selFlag?.required ? previews.find((p) => p.form === selected) : undefined;
 
   useEffect(() => {
     let alive = true;
@@ -687,12 +709,18 @@ function FilingsMasterDetail({
                         className={`w-full cursor-pointer rounded-lg border px-3 py-2 text-left text-sm transition-colors duration-150 ${
                           active
                             ? 'border-[#114B4C] bg-[#2E7D6B]/15 font-semibold'
-                            : 'border-[#A7C4BA]/60 bg-[#FAFCFA] hover:border-[#2E7D6B]'
+                            : f.required
+                              ? 'border-[#A7C4BA]/60 bg-[#FAFCFA] hover:border-[#2E7D6B]'
+                              : 'border-[#A7C4BA]/40 bg-transparent text-[#1E3231]/45 hover:border-[#A7C4BA] hover:text-[#1E3231]/70'
                         }`}
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span>{f.form}</span>
-                          {!hasPreview && <span className="shrink-0 text-[10px] text-[#114B4C]/60">no preview</span>}
+                          {!f.required ? (
+                            <span className="shrink-0 text-[10px] uppercase tracking-wide text-[#114B4C]/45">not needed</span>
+                          ) : (
+                            !hasPreview && <span className="shrink-0 text-[10px] text-[#114B4C]/60">no preview</span>
+                          )}
                         </span>
                       </button>
                     </li>
@@ -709,6 +737,11 @@ function FilingsMasterDetail({
             <>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h4 className="text-base font-semibold">{selFlag.form}</h4>
+                {!selFlag.required && (
+                  <span className="rounded-full border border-[#A7C4BA] px-3 py-0.5 text-xs font-semibold text-[#114B4C]/60">
+                    Not required for this profile
+                  </span>
+                )}
                 {pdfSupported && (
                   <button
                     onClick={() => onDownloadForm(selFlag.form)}
@@ -721,6 +754,10 @@ function FilingsMasterDetail({
               <p className="mt-1 text-sm text-[#114B4C]/80">{selFlag.reason}</p>
               {selPreview ? (
                 <FormPreviewTable fp={selPreview} citations={citations} />
+              ) : !selFlag.required ? (
+                <p className="mt-4 text-sm text-[#114B4C]/70">
+                  Nothing to file here — the reason above explains why, and what would change that.
+                </p>
               ) : (
                 <p className="mt-4 text-sm text-[#114B4C]/70">
                   No line preview for this filing — see the reason above for what it requires.
@@ -763,9 +800,17 @@ function RequiredFilings({
   onDownloadPacket?: () => void;
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const required = flags.filter((f) => f.required);
+  // US: required forms only. UK: always list all SA forms — not-required ones
+  // render greyed out so the "why not" reasoning stays visible.
   const groups = (['US', 'UK'] as const)
-    .map((juris) => ({ juris, items: required.filter((f) => f.jurisdiction === juris) }))
+    .map((juris) => {
+      const all = flags.filter((f) => f.jurisdiction === juris);
+      const items =
+        juris === 'UK'
+          ? [...all.filter((f) => f.required), ...all.filter((f) => !f.required)]
+          : all.filter((f) => f.required);
+      return { juris, items };
+    })
     .filter((g) => g.items.length > 0);
   return (
     <div className="rounded-xl border border-[#A7C4BA] bg-[#E2EBE6] p-5">
@@ -790,13 +835,19 @@ function RequiredFilings({
           </p>
           <ul className="mt-2 space-y-2">
             {items.map((f) => {
-              const fp = previewsEnabled ? previews.find((p) => p.form === f.form) : undefined;
+              const fp = previewsEnabled && f.required ? previews.find((p) => p.form === f.form) : undefined;
               const isOpen = !!open[f.form];
               const row = (
-                <span className="flex w-full items-start gap-3">
-                  <span className="mt-0.5 shrink-0 rounded bg-[#114B4C] px-2 py-0.5 text-xs font-bold text-[#FAFCFA]">
-                    FILE
-                  </span>
+                <span className={`flex w-full items-start gap-3 ${f.required ? '' : 'opacity-55'}`}>
+                  {f.required ? (
+                    <span className="mt-0.5 shrink-0 rounded bg-[#114B4C] px-2 py-0.5 text-xs font-bold text-[#FAFCFA]">
+                      FILE
+                    </span>
+                  ) : (
+                    <span className="mt-0.5 shrink-0 rounded border border-[#A7C4BA] px-2 py-0.5 text-xs font-bold text-[#114B4C]/60">
+                      SKIP
+                    </span>
+                  )}
                   <span>
                     <span className="font-medium">{f.form}</span>
                     {fp && (
@@ -1235,7 +1286,7 @@ export default function TaxTool({ tier = 'filer' }: { tier?: 'free' | 'filer' })
               </span>
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#1E3231]/90">
-              {result.explanation}
+              {renderEmphasis(result.explanation)}
             </p>
           </div>
 

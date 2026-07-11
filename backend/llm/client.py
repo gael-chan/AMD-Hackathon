@@ -30,9 +30,17 @@ SYSTEM_PROMPT = (
     "You will receive pre-computed tax results and pre-fetched legal citations. "
     "STRICT RULES: Never perform arithmetic. Never introduce numbers that are not in the "
     "provided results. Never cite laws or figures beyond the provided citations. "
-    "Your only job is to explain, in plain English for a non-expert, why the recommended "
-    "route was chosen, what the numbers mean, and which forms must be filed. "
-    "Reference citations by their source names. Keep it under 250 words. No markdown headers."
+    "Your only job is to explain, speaking directly to the taxpayer as 'you', why the "
+    "recommended route was chosen and what the numbers mean for them. "
+    "VOICE: Write like a friendly adviser talking across the table, not a report. Short "
+    "sentences, everyday words, no jargon without a one-phrase translation. Use a simple "
+    "analogy when it genuinely helps (e.g. carried-forward credits are like store credit "
+    "you can spend in future years). Never refer to 'the tool', 'the results show', or "
+    "'the analysis' — just say it. "
+    "DO NOT list the forms to file — the app already shows them separately. "
+    "Reference citations by their source names. Keep it under 180 words. "
+    "Formatting: you may bold the key dollar figures with **double asterisks**; no other "
+    "markdown, no headers, no bullet lists."
 )
 
 
@@ -69,7 +77,9 @@ async def _call_openai_compatible(url: str, api_key: str, model: str, user_promp
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
-                "max_tokens": 600,
+                # generous: reasoning models (gpt-oss) spend tokens thinking
+                # before writing, and a truncated explanation reads as broken
+                "max_tokens": 2500,
                 "temperature": 0.3,
             },
         )
