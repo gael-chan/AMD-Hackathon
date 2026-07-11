@@ -15,7 +15,7 @@ from typing import Optional
 
 import httpx
 
-logger = logging.getLogger("provenance.extract")
+logger = logging.getLogger("longhand.extract")
 
 FIREWORKS_ENDPOINT = "https://api.fireworks.ai/inference/v1/chat/completions"
 

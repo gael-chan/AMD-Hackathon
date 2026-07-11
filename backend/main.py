@@ -1,4 +1,4 @@
-"""Provenance API — FastAPI app exposing POST /analyze and PDF downloads."""
+"""Longhand API — FastAPI app exposing POST /analyze and PDF downloads."""
 import io
 import logging
 import zipfile
@@ -24,7 +24,7 @@ from tax_engine import GBP_USD_RATE, analyze  # noqa: E402
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
-    title="Provenance",
+    title="Longhand",
     description="Auditable FTC vs FEIE analysis for US citizens working in the UK. "
     "Deterministic Python computes every number; the LLM only explains.",
     version="0.1.0",
@@ -102,7 +102,7 @@ async def download_packet(req: PacketRequest) -> Response:
         for fp in fillable:
             zf.writestr(_safe_filename(fp.form), fill_form(fp, profile, req.personal))
         manifest = "\n".join([
-            "Provenance filing packet",
+            "Longhand filing packet",
             f"Generated: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
             f"Recommended route: {result.recommended_route}",
             f"Estimated US tax: ${result.us_tax_impact:,.2f}",
@@ -115,7 +115,7 @@ async def download_packet(req: PacketRequest) -> Response:
     return Response(
         content=buf.getvalue(),
         media_type="application/zip",
-        headers={"Content-Disposition": 'attachment; filename="provenance-filing-packet.zip"'},
+        headers={"Content-Disposition": 'attachment; filename="longhand-filing-packet.zip"'},
     )
 
 

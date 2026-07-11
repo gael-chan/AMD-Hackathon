@@ -3,6 +3,8 @@ import { Lexend } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 
+import EntrySplash from './EntrySplash';
+
 /*
  * Forest theme landing (user-supplied palette).
  * Palette:
@@ -16,7 +18,7 @@ import Link from 'next/link';
 const lexend = Lexend({ subsets: ['latin'], variable: '--font-forest' });
 
 export const metadata: Metadata = {
-  title: 'Provenance | One life. Two tax systems. Zero guesswork.',
+  title: 'Longhand | One life. Two tax systems. Zero guesswork.',
   description:
     'Deterministic US and UK tax decisions for American expats. FEIE vs FTC, 14 filing flags, and the exact paragraph of law behind every number.',
 };
@@ -28,16 +30,14 @@ const btnPrimary =
 
 export default function ForestLanding() {
   return (
-    <main className={`${lexend.variable} min-h-screen bg-[#F2F5F3] text-[#1E3231]`}>
+    <>
+      <EntrySplash />
+      <main className={`${lexend.variable} min-h-screen bg-[#F2F5F3] text-[#1E3231]`}>
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-[#A7C4BA]/50 bg-[#F2F5F3]/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 text-lg font-semibold tracking-tight [font-family:var(--font-forest)]"
-          >
-            <span aria-hidden className="inline-block h-2.5 w-2.5 rotate-45 bg-[#2E7D6B]" />
-            Provenance
+          <Link href="/" className="flex items-center transition-opacity hover:opacity-80">
+            <Image src="/longhand-logo-2.png" alt="Longhand" width={114} height={22} priority />
           </Link>
           <div className="hidden items-center gap-8 text-sm text-[#114B4C]/80 md:flex">
             <a href="#how-it-works" className="cursor-pointer transition-colors duration-200 hover:text-[#1E3231]">How it works</a>
@@ -61,7 +61,7 @@ export default function ForestLanding() {
             <span className="text-[#2E7D6B]">Zero guesswork.</span>
           </h1>
           <p className="mt-6 max-w-md text-lg leading-relaxed text-[#114B4C]/85">
-            Provenance decides FEIE vs FTC, flags all 14 US and UK filings, and shows the law
+            Longhand decides FEIE vs FTC, flags all 14 US and UK filings, and shows the law
             behind every number.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -78,10 +78,10 @@ export default function ForestLanding() {
         </div>
         <div className="flex items-end justify-center">
           <Image
-            src="/hero-consultation.png"
+            src="/hero-consultation-2.png"
             alt="A tax adviser walking a client through her return"
             width={608}
-            height={410}
+            height={303}
             priority
           />
         </div>
@@ -152,15 +152,15 @@ export default function ForestLanding() {
             </h2>
             <p className="mt-4 text-lg text-[#114B4C]/85">
               Expand any form line and read the exact paragraph of law that produced it, from the
-              gross income on Form 1116 line 1a to the credit on line 35.
+              wages on Form 1040 line 1h to the credit on Form 1116 line 35.
             </p>
           </div>
           <div className="mt-10 rounded-2xl bg-[#1E3231] p-2 shadow-[0_8px_32px_rgba(52,78,65,0.18)]">
             <Image
-              src="/product-form-1116.png"
-              alt="Form 1116 line preview with computed amounts and the legal citation for each line"
-              width={1240}
-              height={860}
+              src="/product-why-1040.png"
+              alt="Form 1040 line preview with computed amounts and the expanded legal citation for line 1h"
+              width={1606}
+              height={698}
               className="rounded-xl"
             />
           </div>
@@ -174,7 +174,7 @@ export default function ForestLanding() {
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-[#114B4C]/85">
           UK platforms call it tax-free. US law calls the funds inside it PFICs and expects Form
-          8621. Provenance checks the $25,000 threshold and tells you before a penalty letter does.
+          8621. Longhand checks the $25,000 threshold and tells you before a penalty letter does.
         </p>
       </section>
 
@@ -259,7 +259,7 @@ export default function ForestLanding() {
               Is this tax advice?
             </summary>
             <p className="mt-3 text-[#114B4C]/85">
-              No. Provenance produces deterministic estimates with citations so you can verify
+              No. Longhand produces deterministic estimates with citations so you can verify
               every step, then review with a professional. It does not file on your behalf.
             </p>
           </details>
@@ -325,7 +325,7 @@ export default function ForestLanding() {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm text-[#114B4C]/70 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2.5">
             <span aria-hidden className="inline-block h-2 w-2 rotate-45 bg-[#2E7D6B]" />
-            <span>Provenance. Built for the AMD Developer Hackathon, July 2026.</span>
+            <span>Longhand. Built for the AMD Developer Hackathon, July 2026.</span>
           </div>
           <div className="flex items-center gap-6">
             <a
@@ -340,6 +340,7 @@ export default function ForestLanding() {
           </div>
         </div>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }
