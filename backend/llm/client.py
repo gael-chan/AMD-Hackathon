@@ -47,12 +47,21 @@ SYSTEM_PROMPT = (
 ASK_SYSTEM_PROMPT = (
     "You are the Q&A layer of Longhand, an auditable US expat tax assistant. "
     "The user has just read a plain-English explanation of their pre-computed tax "
-    "result and is asking a follow-up question about it. "
-    "STRICT RULES: Never perform arithmetic. Never introduce numbers, law "
-    "references, or facts that are not in the provided explanation. If the "
-    "question cannot be answered from the explanation, say so plainly and point "
-    "out what the explanation does cover. Never give personalised tax advice "
-    "beyond restating what the result says. "
+    "result and is asking a follow-up question. You are given that explanation, "
+    "the exact legal citations the engine relied on, the filing flags with their "
+    "reasons, and both route summaries. "
+    "STRICT RULES: Never perform arithmetic. Never state numbers that are not in "
+    "the provided material. Ground every answer in the provided material and name "
+    "the source when you lean on a citation (e.g. 'per the Form 1116 "
+    "instructions...'). "
+    "WHAT-IF QUESTIONS: the analysis form has inputs for salary, UK tax paid, "
+    "filing status, days abroad, dependents, foreign accounts, PFIC/ISA holdings, "
+    "workplace pension, and UK residence/domicile. If the user asks how a change "
+    "would affect them (e.g. having a dependent), explain what the provided "
+    "material says about it, then tell them to change that field in the form and "
+    "run Analyze again — the deterministic engine will recompute it exactly. "
+    "Never guess the new numbers yourself. "
+    "If the question is outside the provided material entirely, say so plainly. "
     "VOICE: everyday words, short sentences, 2-4 of them, like a friendly adviser. "
     "Translate any jargon in a phrase. You may bold key dollar figures with "
     "**double asterisks**; no other markdown."
@@ -70,12 +79,40 @@ async def _chat(url: str, api_key: str, model: str, messages: list) -> str:
         return resp.json()["choices"][0]["message"]["content"].strip()
 
 
-async def answer_question(question: str, explanation: str, history: list) -> tuple[str, str]:
+def _ask_context(explanation: str, citations: list, filing_flags: list, routes: dict | None) -> str:
+    """Assemble the grounding block: explanation + the engine's own citations,
+    flags, and route summaries. All of it is pre-computed / curated material."""
+    parts = ["Here is the explanation of my result:", "", explanation]
+    if routes:
+        parts += ["", "Route summaries:"]
+        for k, v in routes.items():
+            parts.append(f"- {k}: {v}")
+    if filing_flags:
+        parts += ["", "Filing flags:"]
+        for f in filing_flags:
+            req = "REQUIRED" if f.get("required") else "not required"
+            parts.append(f"- {f.get('form')}: {req} — {f.get('reason')}")
+    if citations:
+        parts += ["", "Legal citations the engine relied on (the only law you may reference):"]
+        for c in citations:
+            parts.append(f"- [{c.get('source')}] {c.get('reference')}: {c.get('text')}")
+    return "\n".join(parts)
+
+
+async def answer_question(
+    question: str,
+    explanation: str,
+    history: list,
+    citations: list | None = None,
+    filing_flags: list | None = None,
+    routes: dict | None = None,
+) -> tuple[str, str]:
     """Answer a follow-up question grounded ONLY in the already-generated
-    explanation. Returns (answer, provider). Never raises."""
+    explanation plus the engine's citations/flags/routes. Returns
+    (answer, provider). Never raises."""
     messages = [
         {"role": "system", "content": ASK_SYSTEM_PROMPT},
-        {"role": "user", "content": "Here is the explanation of my result:\n\n" + explanation},
+        {"role": "user", "content": _ask_context(explanation, citations or [], filing_flags or [], routes)},
         {"role": "assistant", "content": "Understood — ask me anything about this result."},
         *[{"role": m["role"], "content": m["content"]} for m in history[-6:]],
         {"role": "user", "content": question},
