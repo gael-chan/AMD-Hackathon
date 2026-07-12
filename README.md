@@ -51,8 +51,9 @@ A deterministic, auditable tax assistant for PAYE salaried US expats in the UK.
 | Dependents · foreign accounts | Cited IRS / HMRC / US–UK treaty paragraphs |
 | ISA / PFIC holdings · pension | Full calculation trace + plain-English AI explanation |
 | ID photo (optional) | **Filled official IRS PDFs** — per-form download or ZIP packet with manifest |
+| Follow-up questions | **Grounded Q&A** — answered only from your result and its cited law |
 
-Plus a **what-if salary slider** (watch the FTC/FEIE recommendation flip in real time) and **ID-photo extraction** — drop a passport photo and a vision model fills the personal-information header of every PDF (image processed in memory, never stored; the LLM still never computes a tax number).
+Plus a **what-if salary slider** (watch the FTC/FEIE recommendation flip in real time) and **ID-photo extraction** — drop a passport or utility-bill photo and a vision model fills the personal-information header of every PDF (image processed in memory, never stored; the LLM still never computes a tax number).
 
 ### What makes this different
 
@@ -62,6 +63,7 @@ Plus a **what-if salary slider** (watch the FTC/FEIE recommendation flip in real
 | "Here's your answer" | Every number traces to the exact law paragraph |
 | Black box output | Full step-by-step calculation trace, always visible |
 | Generic advice | Flags the exact forms you need to file |
+| Chatbot invents an answer | **Ask a follow-up — answered only from your audited result and its citations, never recomputed** |
 
 > **Core architectural law:** The LLM never touches numbers. Deterministic Python functions run all tax math. The LLM receives pre-computed results + pre-fetched citations and returns plain English only. Break this rule and the audit claim dies.
 
@@ -76,6 +78,10 @@ Plus a **what-if salary slider** (watch the FTC/FEIE recommendation flip in real
 **Every number defends itself** — expand any form line and read the exact paragraph of law that produced it:
 
 ![Form 1040 line 1h with its expanded legal citation](docs/screenshot-citation.png)
+
+**Ask about your result** — a grounded chatbot answers follow-ups using only the explanation and the engine's own citations; what-if questions are pointed back to the form so the deterministic engine recomputes them:
+
+![Grounded Q&A answering a dependents question and citing 26 USC 901](docs/screenshot-qa.jpeg)
 
 **The landing page** — one life, two tax systems, zero guesswork:
 
@@ -131,7 +137,9 @@ The system has three strictly separated layers:
 
 **2. Citation Layer** — Curated IRS/HMRC/treaty snippets retrieved by citation key. No vector DB, no embeddings — hand-picked for reliability over breadth.
 
-**3. Explanation Layer** — AMD MI300X receives pre-computed numbers + pre-fetched citations. Returns plain-English explanation only. Fireworks AI is the fallback if AMD is unavailable.
+**3. Explanation Layer** — AMD MI300X receives pre-computed numbers + pre-fetched citations. Returns plain-English explanation only, and answers grounded follow-up questions drawn solely from that explanation and those citations — it never recomputes. Fireworks AI is the fallback if AMD is unavailable.
+
+A separate **vision path** (Fireworks `kimi-k2p6`) reads name/address text off an uploaded ID or bill for the PDF headers. It is OCR of printed fields, not tax math — the core law still holds: no model ever computes a number, and every extracted value is shown for review before it touches a form.
 
 ---
 
@@ -175,14 +183,17 @@ Every output number traces through this chain to the source paragraph.
 - PFIC/ISA detection (Form 8621), treaty disclosure (8833), FATCA (8938), UK Self Assessment (SA100/106/109)
 - Plain-English LLM explanation with cited paragraphs
 - Full calculation trace visible in UI
+- Filled official IRS PDFs for the demo chain (per-form + ZIP packet), with live in-browser preview
+- ID-photo / bill extraction that fills the PDF personal-information headers (in memory, never stored)
+- What-if salary slider and grounded Q&A about the result (3-question demo cap)
 
 **Out of scope — not built, not promised:**
 
 - Self-employment / freelance income
 - Multi-year carryforward
 - PFIC §1291 excess-distribution tax math (Form 8621 is flagged & previewed; the deferred-tax computation needs distribution history)
-- Actually filing the forms
-- LLM chat / Q&A loop
+- Actually e-filing the forms
+- Open-ended chat beyond the result (the Q&A only speaks to the audited result and its citations, by design)
 - Live FX rates
 
 ---
@@ -197,8 +208,10 @@ Every output number traces through this chain to the source paragraph.
 | Citation RAG | Curated dict — IRS / HMRC / US–UK treaty snippets |
 | LLM (primary) | AMD MI300X via AMD Developer Cloud |
 | LLM (fallback) | Fireworks AI — `accounts/fireworks/models/gpt-oss-120b` |
+| Vision (ID extraction) | Fireworks AI — `accounts/fireworks/models/kimi-k2p6` |
+| PDF filling | `pypdf` — official IRS AcroForm templates, in memory |
 | Frontend | Next.js 14 + Tailwind CSS |
-| Deployment | Docker Compose |
+| Deployment | Railway (backend) · Vercel (frontend) · Docker Compose (local) |
 
 ---
 
@@ -234,8 +247,8 @@ cd backend && pytest tests -q
 curl -X POST http://localhost:8000/analyze \
   -H "Content-Type: application/json" \
   -d '{
-    "uk_salary": 85000,
-    "uk_tax_paid": 24000,
+    "uk_salary": 200000,
+    "uk_tax_paid": 60000,
     "filing_status": "single",
     "days_abroad": 340,
     "dependents": 0,
@@ -250,7 +263,7 @@ curl -X POST http://localhost:8000/analyze \
 ```
 longhand/
 ├── backend/
-│   ├── main.py            # FastAPI — /analyze, /pdf, /packet, /extract-identity
+│   ├── main.py            # FastAPI — /analyze, /ask, /pdf, /packet, /extract-identity
 │   ├── models.py          # Pydantic schemas
 │   ├── tax_engine.py      # deterministic FEIE/FTC calculator + filing flags
 │   ├── snippets.py        # curated IRS/HMRC/treaty citations
@@ -265,8 +278,8 @@ longhand/
 │   │   ├── sa100.py, sa106.py, sa109.py   # UK Self Assessment
 │   │   └── templates/     #   vendored blank IRS PDFs (public domain)
 │   ├── llm/
-│   │   ├── client.py      # explanation: AMD MI300X + Fireworks fallback
-│   │   └── extract.py     # ID-photo field extraction (vision model)
+│   │   ├── client.py      # explanation + grounded Q&A: AMD MI300X + Fireworks fallback
+│   │   └── extract.py     # ID-photo field extraction (vision model, image downscaled in memory)
 │   ├── tests/             # 121 pytest cases: goldens, boundaries, invariants, PDF round-trips
 │   └── requirements.txt
 ├── frontend/
@@ -290,14 +303,25 @@ longhand/
 
 ## Environment Variables
 
+**Backend** (`backend/.env`):
 ```bash
-# .env.example — all keys optional; with none set the API returns the
-# deterministic trace summary instead of an LLM explanation
+# All keys optional. With none set, /analyze returns the deterministic trace
+# summary instead of an LLM explanation, and /ask + /extract-identity report
+# that no model is configured. The math is identical either way.
 AMD_API_KEY=your_amd_key_here
 AMD_MODEL_ENDPOINT=https://your-amd-endpoint/v1/chat/completions   # OpenAI-compatible
-FIREWORKS_API_KEY=your_fireworks_key_here   # also powers ID-photo extraction
+FIREWORKS_API_KEY=your_fireworks_key_here   # explanation, Q&A, and ID-photo extraction
 GBP_USD_RATE=1.27
+# FIREWORKS_VISION_MODEL=accounts/fireworks/models/kimi-k2p6   # optional override
 ```
+
+**Frontend** — when the backend runs on a different host (e.g. Railway) than the
+frontend (e.g. Vercel), point the frontend at it. `NEXT_PUBLIC_*` is baked in at
+**build** time, so set it before deploying and redeploy after changing it:
+```bash
+NEXT_PUBLIC_API_URL=https://your-backend.up.railway.app   # no trailing slash
+```
+Unset, it defaults to `http://localhost:8000` for local development.
 
 ---
 
@@ -325,6 +349,8 @@ UK is the wedge market. The policy-to-code architecture extends to any dual-fili
 - [ ] PDF filling for the disclosure forms (8621/8833/8938) and UK SA pages (HMRC PDFs are print-only — needs coordinate overlay)
 - [x] What-if simulator (live salary slider — watch the FTC/FEIE recommendation flip)
 - [x] ID-photo extraction fills the PDF personal-information headers (vision LLM, in-memory only)
+- [x] Grounded Q&A about your result (answers drawn only from the explanation + cited law)
+- [ ] Lift the 3-question Q&A cap and add per-user quotas behind auth
 - [ ] Brokerage CSV import
 - [ ] Multi-year carryforward tracking
 - [ ] Jurisdiction #2 via swappable module pack — same engine, new rules file
