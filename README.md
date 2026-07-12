@@ -207,7 +207,7 @@ Every output number traces through this chain to the source paragraph.
 | Calculation | Pure Python · `Decimal` arithmetic · no floats |
 | Citation RAG | Curated dict — IRS / HMRC / US–UK treaty snippets |
 | LLM (primary) | AMD MI300X via AMD Developer Cloud |
-| LLM (fallback) | Fireworks AI — `accounts/fireworks/models/gpt-oss-120b` |
+| LLM (fallback when run out of AMD credit) | Fireworks AI — `accounts/fireworks/models/gpt-oss-120b` |
 | Vision (ID extraction) | Fireworks AI — `accounts/fireworks/models/kimi-k2p6` |
 | PDF filling | `pypdf` — official IRS AcroForm templates, in memory |
 | Frontend | Next.js 14 + Tailwind CSS |
