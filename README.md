@@ -139,7 +139,7 @@ The system has three strictly separated layers:
 
 **3. Explanation Layer** — AMD MI300X receives pre-computed numbers + pre-fetched citations. Returns plain-English explanation only, and answers grounded follow-up questions drawn solely from that explanation and those citations — it never recomputes. Fireworks AI is the fallback if AMD is unavailable.
 
-A separate **vision path** (Fireworks `kimi-k2p6`) reads name/address text off an uploaded ID or bill for the PDF headers. It is OCR of printed fields, not tax math — the core law still holds: no model ever computes a number, and every extracted value is shown for review before it touches a form.
+A separate **vision path** reads name/address text off an uploaded ID or bill for the PDF headers — **AMD MI300X first, Fireworks `kimi-k2p6` as fallback**, the same provider chain as the explanation layer. It is OCR of printed fields, not tax math — the core law still holds: no model ever computes a number, and every extracted value is shown for review before it touches a form.
 
 ---
 
@@ -208,7 +208,7 @@ Every output number traces through this chain to the source paragraph.
 | Citation RAG | Curated dict — IRS / HMRC / US–UK treaty snippets |
 | LLM (primary) | AMD MI300X via AMD Developer Cloud |
 | LLM (fallback when run out of AMD credit) | Fireworks AI — `accounts/fireworks/models/gpt-oss-120b` |
-| Vision (ID extraction) | Fireworks AI — `accounts/fireworks/models/kimi-k2p6` |
+| Vision (ID extraction) | AMD MI300X primary · Fireworks `kimi-k2p6` fallback |
 | PDF filling | `pypdf` — official IRS AcroForm templates, in memory |
 | Frontend | Next.js 14 + Tailwind CSS |
 | Deployment | Railway (backend) · Vercel (frontend) · Docker Compose (local) |
@@ -310,7 +310,8 @@ longhand/
 # that no model is configured. The math is identical either way.
 AMD_API_KEY=your_amd_key_here
 AMD_MODEL_ENDPOINT=https://your-amd-endpoint/v1/chat/completions   # OpenAI-compatible
-FIREWORKS_API_KEY=your_fireworks_key_here   # explanation, Q&A, and ID-photo extraction
+# AMD_VISION_MODEL=meta-llama/Llama-3.2-90B-Vision-Instruct   # set to route ID extraction through AMD too
+FIREWORKS_API_KEY=your_fireworks_key_here   # explanation, Q&A, and ID-photo extraction (fallback)
 GBP_USD_RATE=1.27
 # FIREWORKS_VISION_MODEL=accounts/fireworks/models/kimi-k2p6   # optional override
 ```
