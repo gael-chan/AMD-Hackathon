@@ -1,10 +1,14 @@
 """Identity extraction from an ID document image via a vision LLM.
 
-Sends the image to Fireworks (gemma-3 is multimodal) and asks for a strict
-JSON identity block. This is OCR of identity text, not tax math — the
-architectural law holds: no LLM ever computes a number, and every extracted
-value is shown to the user for review before it reaches a form. The image is
-held in memory for the duration of the request only.
+Provider chain mirrors the explanation layer: AMD MI300X first (when
+AMD_API_KEY + AMD_MODEL_ENDPOINT + AMD_VISION_MODEL are set), Fireworks AI as
+the fallback (FIREWORKS_API_KEY). Both are OpenAI-compatible /v1/chat/completions
+endpoints, so the same multimodal message shape works for either.
+
+This is OCR of identity text, not tax math — the architectural law holds: no
+LLM ever computes a number, and every extracted value is shown to the user for
+review before it reaches a form. The image is held in memory for the duration
+of the request only.
 """
 import base64
 import io
@@ -19,25 +23,14 @@ from PIL import Image
 
 logger = logging.getLogger("longhand.extract")
 
+FIREWORKS_ENDPOINT = "https://api.fireworks.ai/inference/v1/chat/completions"
+
+REQUEST_TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
+
 # Vision latency scales with image size: a full-resolution document photo can
 # triple the model's read-and-reason time. Identity text survives downscaling
 # to ~1100px fine, and JPEG is a fraction of PNG's bytes.
 MAX_DIMENSION = 1100
-
-
-def _shrink(image_bytes: bytes, mime: str) -> tuple[bytes, str]:
-    """Downscale + JPEG-re-encode the upload for faster extraction.
-    Falls back to the original bytes for formats Pillow can't open."""
-    try:
-        img = Image.open(io.BytesIO(image_bytes))
-        img.thumbnail((MAX_DIMENSION, MAX_DIMENSION))
-        buf = io.BytesIO()
-        img.convert("RGB").save(buf, "JPEG", quality=85)
-        return buf.getvalue(), "image/jpeg"
-    except Exception:
-        return image_bytes, mime
-
-FIREWORKS_ENDPOINT = "https://api.fireworks.ai/inference/v1/chat/completions"
 
 FIELDS = [
     "first_name", "last_name", "street_address", "city", "state",
@@ -59,54 +52,102 @@ PROMPT = (
 )
 
 
-async def extract_identity(image_bytes: bytes, mime: str) -> Optional[dict]:
-    """Returns the extracted identity fields, or None when no key is configured."""
-    api_key = os.getenv("FIREWORKS_API_KEY", "")
-    if not api_key:
-        return None
-    # Deliberately NOT falling back to FIREWORKS_MODEL: that variable selects
-    # the text explanation model (gpt-oss), which cannot accept images —
-    # inheriting it silently breaks extraction in deployments that set it.
-    model = os.getenv("FIREWORKS_VISION_MODEL", "accounts/fireworks/models/kimi-k2p6")
-    small_bytes, small_mime = _shrink(image_bytes, mime)
-    data_url = f"data:{small_mime};base64,{base64.b64encode(small_bytes).decode()}"
-    async with httpx.AsyncClient(timeout=45) as client:
+def _shrink(image_bytes: bytes, mime: str) -> tuple[bytes, str]:
+    """Downscale + JPEG-re-encode the upload for faster extraction.
+    Falls back to the original bytes for formats Pillow can't open."""
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        img.thumbnail((MAX_DIMENSION, MAX_DIMENSION))
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, "JPEG", quality=85)
+        return buf.getvalue(), "image/jpeg"
+    except Exception:
+        return image_bytes, mime
+
+
+def _messages(data_url: str, prefill: bool) -> list:
+    msgs = [{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": PROMPT},
+            {"type": "image_url", "image_url": {"url": data_url}},
+        ],
+    }]
+    if prefill:
+        # Prefilling the reply with the opening brace makes a reasoning model
+        # continue the JSON directly instead of thinking first — measured
+        # ~1.5s vs ~20-40s without it. Only used for Fireworks (kimi); AMD's
+        # Llama vision models don't ramble and some servers reject a trailing
+        # assistant message.
+        msgs.append({"role": "assistant", "content": "{"})
+    return msgs
+
+
+async def _call_vision(url: str, api_key: str, model: str, data_url: str, prefill: bool) -> str:
+    async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
         resp = await client.post(
-            FIREWORKS_ENDPOINT,
+            url,
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
                 "model": model,
                 "max_tokens": 600,
                 "temperature": 0,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": PROMPT},
-                            {"type": "image_url", "image_url": {"url": data_url}},
-                        ],
-                    },
-                    # Prefilling the reply with the opening brace makes the
-                    # reasoning model continue the JSON directly instead of
-                    # thinking first — measured ~1.5s vs ~20-40s without it.
-                    {"role": "assistant", "content": "{"},
-                ],
+                "messages": _messages(data_url, prefill),
             },
         )
         resp.raise_for_status()
         text = resp.json()["choices"][0]["message"]["content"]
-        if not text.lstrip().startswith("{"):
-            text = "{" + text  # restore the prefilled brace for the parser
-    return _parse_fields(text)
+    if prefill and not text.lstrip().startswith("{"):
+        text = "{" + text  # restore the prefilled brace for the parser
+    return text
 
 
-def _parse_fields(text: str) -> dict:
-    """Pull the JSON object out of the model reply, defensively.
+async def extract_identity(image_bytes: bytes, mime: str) -> Optional[dict]:
+    """Return the extracted identity fields, or None when no provider is
+    configured (or every configured provider failed). Tries AMD MI300X first,
+    then Fireworks."""
+    small_bytes, small_mime = _shrink(image_bytes, mime)
+    data_url = f"data:{small_mime};base64,{base64.b64encode(small_bytes).decode()}"
+
+    amd_key = os.getenv("AMD_API_KEY", "")
+    amd_endpoint = os.getenv("AMD_MODEL_ENDPOINT", "")
+    # A vision-capable model must be named explicitly: the text AMD_MODEL
+    # (e.g. Llama-3.1-70B-Instruct) can't accept images, so we don't inherit it.
+    amd_model = os.getenv("AMD_VISION_MODEL", "")
+    if amd_key and amd_endpoint and amd_model:
+        try:
+            text = await _call_vision(amd_endpoint, amd_key, amd_model, data_url, prefill=False)
+            raw = _find_json(text)
+            if raw is not None:
+                logger.info("ID extraction via AMD MI300X")
+                return _normalize(raw)
+            logger.warning("AMD vision returned no parseable JSON, falling back to Fireworks")
+        except Exception as exc:
+            logger.warning("AMD vision extraction failed, falling back to Fireworks: %s", exc)
+
+    fw_key = os.getenv("FIREWORKS_API_KEY", "")
+    if fw_key:
+        # Deliberately NOT falling back to FIREWORKS_MODEL: that variable selects
+        # the text explanation model (gpt-oss), which cannot accept images —
+        # inheriting it silently breaks extraction in deployments that set it.
+        model = os.getenv("FIREWORKS_VISION_MODEL", "accounts/fireworks/models/kimi-k2p6")
+        try:
+            text = await _call_vision(FIREWORKS_ENDPOINT, fw_key, model, data_url, prefill=True)
+            logger.info("ID extraction via Fireworks")
+            return _normalize(_find_json(text) or {})
+        except Exception as exc:
+            logger.warning("Fireworks vision extraction failed: %s", exc)
+
+    return None
+
+
+def _find_json(text: str) -> Optional[dict]:
+    """Pull the answer JSON object out of the model reply, defensively.
 
     Reasoning models may narrate before answering, so prefer the LAST flat
-    JSON object in the reply (the answer), falling back to a greedy match.
+    JSON object that carries any of our keys, falling back to a greedy match.
+    Returns None when nothing parseable is found.
     """
-    raw: dict = {}
     candidates = re.findall(r"\{[^{}]*\}", text, re.DOTALL)
     greedy = re.search(r"\{.*\}", text, re.DOTALL)
     if greedy:
@@ -117,8 +158,10 @@ def _parse_fields(text: str) -> dict:
         except json.JSONDecodeError:
             continue
         if isinstance(parsed, dict) and any(k in parsed for k in FIELDS):
-            raw = parsed
-            break
-    if not raw:
-        logger.warning("Vision model returned no parseable JSON")
+            return parsed
+    return None
+
+
+def _normalize(raw: dict) -> dict:
+    """Coerce a parsed reply into the exact FIELDS shape, all strings, trimmed."""
     return {k: str(raw.get(k, "") or "").strip() for k in FIELDS}
